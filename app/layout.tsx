@@ -5,10 +5,28 @@ import { GeistMono } from "geist/font/mono";
 import { Nav } from "@/components/Nav";
 import { Footer } from "@/components/Footer";
 
+const SITE_URL = "https://chai-xiao-kuai-xue.vercel.app";
+const SITE_TITLE = "拆小块学 · GitHub 项目拆解助手";
+const SITE_DESC =
+  "不要学习一个项目，学习它对你有用的那一小块。粘一个 GitHub 链接 + 你正在做的项目，AI 帮你拆出能直接搬走的小模块。";
+
 export const metadata: Metadata = {
-  title: "拆小块学 · GitHub 项目拆解助手",
-  description:
-    "不要学习一个项目，学习它对你有用的那一小块。粘一个 GitHub 链接 + 你正在做的项目，AI 帮你拆出能直接搬走的小模块。",
+  metadataBase: new URL(SITE_URL),
+  title: SITE_TITLE,
+  description: SITE_DESC,
+  openGraph: {
+    type: "website",
+    locale: "zh_CN",
+    url: SITE_URL,
+    siteName: "拆小块学",
+    title: SITE_TITLE,
+    description: SITE_DESC,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: SITE_TITLE,
+    description: SITE_DESC,
+  },
 };
 
 const NO_FLASH_THEME_SCRIPT = `
