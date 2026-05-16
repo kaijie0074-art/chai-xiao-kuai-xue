@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "./Icon";
+import { swapLocalePath, useDict, useLocale } from "@/lib/i18n";
 
 const THEME_KEY = "dissect-mvp-theme";
 type Theme = "light" | "dark";
@@ -20,7 +21,8 @@ function readTheme(): Theme {
 export function Nav() {
   const pathname = usePathname();
   const router = useRouter();
-  // Initialize to "light" to match server render; sync from localStorage post-mount.
+  const locale = useLocale();
+  const t = useDict();
   const [theme, setTheme] = useState<Theme>("light");
 
   useEffect(() => {
@@ -38,24 +40,38 @@ export function Nav() {
     });
   }, []);
 
+  const langTarget = locale === "en" ? "zh" : "en";
+  const langSwitchHref = swapLocalePath(pathname, langTarget);
+
+  const prefix = locale === "en" ? "/en" : "";
   const links = [
-    { id: "home", label: "首页", href: "/" },
-    { id: "analyze", label: "拆解", href: "/analyze" },
-    { id: "history", label: "历史", href: "/history" },
-    { id: "settings", label: "设置", href: "/settings" },
-    { id: "about", label: "关于", href: "/about" },
+    { id: "home", label: t.nav.home, href: locale === "en" ? "/en" : "/" },
+    { id: "analyze", label: t.nav.analyze, href: `${prefix}/analyze` },
+    { id: "history", label: t.nav.history, href: `${prefix}/history` },
+    { id: "settings", label: t.nav.settings, href: `${prefix}/settings` },
+    { id: "about", label: t.nav.about, href: `${prefix}/about` },
   ];
 
-  const isActive = (href: string) => pathname === href || pathname.startsWith(href + "/");
+  const isActive = (href: string) => {
+    if (pathname === href) return true;
+    // exact /en or / should not be active for sub-routes
+    if (href === "/" || href === "/en") return false;
+    return pathname.startsWith(href + "/") || pathname === href;
+  };
 
   return (
     <nav className="nav">
-      <div className="nav-brand" onClick={() => router.push("/")} role="button" tabIndex={0}>
+      <div
+        className="nav-brand"
+        onClick={() => router.push(locale === "en" ? "/en" : "/")}
+        role="button"
+        tabIndex={0}
+      >
         <div className="nav-mark" style={{ color: "var(--fg-3)" }}>
           <Icon.Logo />
         </div>
         <div className="nav-title">
-          <h1>拆小块学</h1>
+          <h1>{t.nav.brand}</h1>
           <span className="nav-version">v0.1</span>
         </div>
       </div>
@@ -70,11 +86,23 @@ export function Nav() {
           </Link>
         ))}
         <span className="nav-divider" />
+        <Link
+          href={langSwitchHref}
+          className="nav-link"
+          style={{ fontFamily: "var(--font-mono)", fontSize: 12 }}
+          title={locale === "en" ? "切换到中文" : "Switch to English"}
+        >
+          {t.nav.switchLang}
+        </Link>
         <button
           className="theme-toggle"
           onClick={toggleTheme}
-          aria-label={theme === "dark" ? "切换到明亮模式" : "切换到暗色模式"}
-          title={theme === "dark" ? "切换到明亮模式" : "切换到暗色模式"}
+          aria-label={
+            theme === "dark" ? t.nav.themeToggleLight : t.nav.themeToggleDark
+          }
+          title={
+            theme === "dark" ? t.nav.themeToggleLight : t.nav.themeToggleDark
+          }
           suppressHydrationWarning
         >
           {theme === "dark" ? <Icon.Sun /> : <Icon.Moon />}

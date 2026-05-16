@@ -2,6 +2,7 @@ import type { ManifestFile, RepoBundle } from "../github";
 import { renderTreeOutline } from "../github";
 import { truncate } from "../utils";
 import type { Stage1Output } from "./stage1";
+import type { Locale } from "../i18n";
 
 export interface Module {
   id: string;
@@ -54,16 +55,55 @@ export const STAGE2_SYSTEM = `你是一位"开源代码拆解师"。你的任务
 - 输出语言：中文。
 - 不要 markdown 围栏。`;
 
+export const STAGE2_SYSTEM_EN = `You are an "open-source code dissector". Your job is NOT to explain a whole project — it's to extract 3-8 "stealable small module cards" from one or more target repos, tailored to the user's [current project].
+
+Core idea: don't learn a project, learn the small piece of it that's useful to you.
+
+Each card MUST include:
+- title: a one-line title (≤ 40 characters)
+- what_it_is: 2-4 sentences describing what this module does in the original repo
+- why_useful_for_you: 2-4 specific sentences explaining why it helps the [user's project] — concrete, not platitudes. If multiple repos, you may compare here ("repo A uses X, repo B uses Y; for your case X fits because…").
+- how_to_steal: 3-6 actionable steps for migrating — what to install, which files to copy/edit, common gotchas.
+- code_snippet: representative code from the actual source files (keep original formatting; trim if needed but don't fabricate; omit irrelevant comments).
+- source_files: array of real source-file paths. Single-repo mode: bare paths. [Multi-repo mode: MUST use "owner/repo:path" form to indicate which repo each file belongs to.]
+
+You MUST output a strict JSON object with this shape, no markdown fences, no characters outside JSON:
+
+{
+  "modules": [
+    {
+      "id": "kebab-case-id",
+      "title": "...",
+      "what_it_is": "...",
+      "why_useful_for_you": "...",
+      "how_to_steal": "...",
+      "code_snippet": "...",
+      "source_files": ["..."]
+    }
+  ]
+}
+
+[Constraints]
+- 3-8 modules total. Quality over quantity.
+- Cover the user's [selected question set]; each question should map to at least one card (unless that repo has nothing worth stealing on that topic — then say so honestly).
+- code_snippet MUST come from the provided source files — do NOT invent code. If you don't have the relevant source, use a short sketch or empty string.
+- how_to_steal must land on the [user's project] — what to install, which files to touch, which trap to watch for.
+- Multi-repo: spread cards across repos (don't put all 4 cards from one repo unless the others have nothing useful on that topic). Weave comparative observations naturally into why_useful_for_you or how_to_steal.
+- Output language: ENGLISH.
+- No markdown fences.`;
+
 export function buildStage2User(opts: {
   bundles: RepoBundle[];
   stage1: Stage1Output;
   keyFiles: Array<{ repo: string; path: string; content: string }>;
   userProjectContext: string;
   selectedQuestions: string[];
+  locale?: Locale;
 }): string {
-  const { bundles, stage1, keyFiles, userProjectContext, selectedQuestions } = opts;
+  const { bundles, stage1, keyFiles, userProjectContext, selectedQuestions, locale = "zh" } = opts;
   const n = bundles.length;
   const multi = n > 1;
+  const isEn = locale === "en";
 
   const reposBlock = bundles
     .map((b, i) => {
@@ -106,6 +146,31 @@ ${tree}`;
   const questionsBlock = selectedQuestions
     .map((q, i) => `${i + 1}) ${q}`)
     .join("\n");
+
+  if (isEn) {
+    return `# User's current project
+${userProjectContext.trim() || "(not provided — answer based on general web/LLM app context)"}
+
+# User's selected questions (build cards around these)
+${questionsBlock || "(none selected — pick the 3-5 most-worth-stealing things based on Stage 1's core value)"}
+
+# Stage 1 scouting result
+- Project type: ${stage1.project_type}
+- Core value: ${stage1.core_value}
+
+# Target repos (${n} total${multi ? ", compare them" : ""})
+
+${reposBlock}
+
+# Key source files (Stage 1 nominated + actually fetched)
+${keyFilesBlock}
+
+Return strict JSON per STAGE2 system prompt${
+      multi
+        ? '. source_files MUST use "owner/repo:path" form to indicate which repo each file belongs to'
+        : ""
+    }.`;
+  }
 
   return `# 用户当前项目背景
 ${userProjectContext.trim() || "（用户未提供，请基于通用 Web/LLM 应用场景作答）"}

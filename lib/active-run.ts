@@ -19,6 +19,7 @@ import {
   type SynthesizeRequest,
 } from "./analyze";
 import { useHistory } from "./history";
+import type { Locale } from "./i18n";
 import type { Stage1Output } from "./prompts/stage1";
 import type { Module } from "./prompts/stage2";
 
@@ -190,6 +191,7 @@ export async function startSynthesize(opts: {
   apiKey: string;
   model: string;
   baseURL?: string;
+  locale?: Locale;
 }): Promise<void> {
   activeAborts.synth?.abort();
   const ac = new AbortController();
@@ -220,6 +222,7 @@ export async function startSynthesize(opts: {
         apiKey: opts.apiKey,
         model: opts.model,
         baseURL: opts.baseURL,
+        locale: opts.locale,
         signal: ac.signal,
       },
       (u) => {

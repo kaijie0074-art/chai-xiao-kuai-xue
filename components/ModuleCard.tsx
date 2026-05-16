@@ -6,6 +6,7 @@ import remarkGfm from "remark-gfm";
 import type { Module } from "@/lib/prompts/stage2";
 import { moduleToMarkdown } from "@/lib/analyze";
 import { copyToClipboard } from "@/lib/utils";
+import { useDict } from "@/lib/i18n";
 import { Icon } from "./Icon";
 
 function Md({ children }: { children: string }) {
@@ -13,7 +14,6 @@ function Md({ children }: { children: string }) {
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
       components={{
-        // collapse <p> in section-body so paragraph margins look natural
         p: ({ children }) => <p>{children}</p>,
       }}
     >
@@ -26,16 +26,18 @@ function CodeBlock({
   code,
   filename,
   onCopy,
+  title,
 }: {
   code: string;
   filename: string;
   onCopy: () => void;
+  title: string;
 }) {
   return (
     <div className="code-block">
       <div className="code-block-head">
         <span className="filename">{filename}</span>
-        <button className="icon-btn" title="复制代码" onClick={onCopy} type="button">
+        <button className="icon-btn" title={title} onClick={onCopy} type="button">
           <Icon.Copy />
         </button>
       </div>
@@ -55,6 +57,7 @@ export function ModuleCard({
   index: number;
   onTear?: (m: Module) => void;
 }) {
+  const t = useDict();
   const [torn, setTorn] = useState(false);
   const [tearing, setTearing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -92,11 +95,11 @@ export function ModuleCard({
       <div className="card-head">
         <div>
           <div className="card-recipe-no">
-            NO.<span>{num}</span>
+            {t.card.no}<span>{num}</span>
           </div>
           <h3 className="card-title">{m.title}</h3>
         </div>
-        {torn && <div className="torn-stamp">已复制</div>}
+        {torn && <div className="torn-stamp">{t.card.tornStamp}</div>}
       </div>
 
       {m.source_files.length > 0 && (
@@ -123,7 +126,7 @@ export function ModuleCard({
       <div className="card-body">
         <div className="card-section">
           <div className="section-label">
-            <span className="dot" /> 是什么
+            <span className="dot" /> {t.card.isWhat}
           </div>
           <div className="section-body">
             <Md>{m.what_it_is}</Md>
@@ -131,7 +134,7 @@ export function ModuleCard({
         </div>
         <div className="card-section">
           <div className="section-label">
-            <span className="dot" /> 对你为什么有用
+            <span className="dot" /> {t.card.whyUseful}
           </div>
           <div className="section-body">
             <Md>{m.why_useful_for_you}</Md>
@@ -139,7 +142,7 @@ export function ModuleCard({
         </div>
         <div className="card-section">
           <div className="section-label">
-            <span className="dot" /> 怎么搬过来
+            <span className="dot" /> {t.card.howToSteal}
           </div>
           <div className="section-body">
             <Md>{m.how_to_steal}</Md>
@@ -148,12 +151,17 @@ export function ModuleCard({
       </div>
 
       {m.code_snippet && (
-        <CodeBlock code={m.code_snippet} filename={snippetFile} onCopy={handleCodeCopy} />
+        <CodeBlock
+          code={m.code_snippet}
+          filename={snippetFile}
+          onCopy={handleCodeCopy}
+          title={t.card.copyCode}
+        />
       )}
 
       <div className="card-foot">
         <div className="card-foot-hint">
-          {codeCopied ? "✓ 代码已复制" : "复制为 Markdown，粘到你的项目里"}
+          {codeCopied ? t.card.codeCopied : t.card.hint}
         </div>
         <button
           className={"tear-btn" + (copied ? " copied" : "")}
@@ -162,7 +170,7 @@ export function ModuleCard({
           type="button"
         >
           <Icon.Scissors />
-          {copied ? "已复制" : "撕下来"}
+          {copied ? t.card.torn : t.card.tear}
         </button>
       </div>
     </article>

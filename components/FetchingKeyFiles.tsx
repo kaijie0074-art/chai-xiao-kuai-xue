@@ -1,6 +1,10 @@
+"use client";
+
 import { Icon } from "./Icon";
+import { useDict } from "@/lib/i18n";
 
 export function FetchingKeyFiles({ files }: { files: string[] }) {
+  const t = useDict();
   return (
     <div className="stream-view" style={{ paddingBottom: 8 }}>
       <div
@@ -18,7 +22,7 @@ export function FetchingKeyFiles({ files }: { files: string[] }) {
           className="spinner"
           style={{ borderColor: "var(--accent)", borderTopColor: "transparent" }}
         />
-        正在抓取 Stage 1 提名的关键文件…
+        {t.fetchingKeyFiles}
       </div>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {files.map((f, i) => {

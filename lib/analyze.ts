@@ -8,17 +8,20 @@ import {
 import {
   buildStage1User,
   STAGE1_SYSTEM,
+  STAGE1_SYSTEM_EN,
   type Stage1Output,
 } from "./prompts/stage1";
 import {
   buildStage2User,
   STAGE2_SYSTEM,
+  STAGE2_SYSTEM_EN,
   type Module,
   type Stage2Output,
 } from "./prompts/stage2";
 import {
   buildSynthesizeUser,
   SYNTHESIZE_SYSTEM,
+  SYNTHESIZE_SYSTEM_EN,
 } from "./prompts/synthesize";
 import {
   classifyLLMError,
@@ -27,6 +30,7 @@ import {
 } from "./providers";
 import type { ProviderName } from "./store";
 import { parseLLMJson } from "./utils";
+import type { Locale } from "./i18n";
 
 export type AnalyzePhase =
   | "idle"
@@ -58,6 +62,8 @@ export interface AnalyzeRequest {
   model: string;
   /** baseURL is only used for `provider === "custom"` (中转站) */
   baseURL?: string;
+  /** 决定 prompt 语言 + 输出 cards 语言 */
+  locale?: Locale;
   signal?: AbortSignal;
 }
 
@@ -99,6 +105,7 @@ export async function runAnalyze(
     apiKey,
     model,
     baseURL,
+    locale = "zh",
     signal,
   } = req;
 
@@ -149,10 +156,10 @@ export async function runAnalyze(
   let stage1: Stage1Output;
   try {
     onUpdate({ phase: "stage1", message: "Stage 1：LLM 正在侦察项目结构 ..." });
-    const user = buildStage1User({ bundles, userProjectContext });
+    const user = buildStage1User({ bundles, userProjectContext, locale });
     const text = await consumeStream(
       llm.stream({
-        system: STAGE1_SYSTEM,
+        system: locale === "en" ? STAGE1_SYSTEM_EN : STAGE1_SYSTEM,
         messages: [{ role: "user", content: user }],
         jsonMode: true,
         signal,
@@ -239,10 +246,11 @@ export async function runAnalyze(
       keyFiles,
       userProjectContext,
       selectedQuestions,
+      locale,
     });
     const text = await consumeStream(
       llm.stream({
-        system: STAGE2_SYSTEM,
+        system: locale === "en" ? STAGE2_SYSTEM_EN : STAGE2_SYSTEM,
         messages: [{ role: "user", content: user }],
         jsonMode: true,
         signal,
@@ -331,6 +339,7 @@ export interface SynthesizeRequest {
   apiKey: string;
   model: string;
   baseURL?: string;
+  locale?: Locale;
   signal?: AbortSignal;
 }
 
@@ -369,15 +378,17 @@ export async function runSynthesize(
 
   try {
     onUpdate({ phase: "running" });
+    const locale = req.locale ?? "zh";
     const user = buildSynthesizeUser({
       target: req.target,
       modules: req.modules,
       repos: req.repos,
+      locale,
     });
     const text = await consumeStream(
       // jsonMode 故意不打开 —— 这一阶段我们要的是 markdown，不是 JSON
       llm.stream({
-        system: SYNTHESIZE_SYSTEM,
+        system: locale === "en" ? SYNTHESIZE_SYSTEM_EN : SYNTHESIZE_SYSTEM,
         messages: [{ role: "user", content: user }],
         signal: req.signal,
         maxTokens: 4096,

@@ -1,6 +1,7 @@
 import type { RepoBundle } from "../github";
 import { renderTreeOutline } from "../github";
 import { truncate } from "../utils";
+import type { Locale } from "../i18n";
 
 export interface Stage1Output {
   project_type: string;
@@ -30,12 +31,36 @@ export const STAGE1_SYSTEM = `你是一位资深开源软件考古专家。你�
 - suggested_questions_if_dynamic_mode：5-7 个问题，必须高度针对【用户当前项目】描述与【这组 repo 的对比可能性】，不要重复"固定七问"那类通用问题。
 - 不要解释、不要 markdown 围栏、不要任何 JSON 以外的字符。`;
 
+export const STAGE1_SYSTEM_EN = `You are a senior open-source archaeologist. Your job is to "scout" a set of GitHub projects (1 or more) and tell the next-stage "dissection agent" which files to read next, plus suggest targeted questions tailored to the user's current project.
+
+You MUST output a strict JSON object (no markdown fences, no explanatory prose) with this shape:
+
+{
+  "project_type": "If only one repo: a one-sentence type description. If multiple repos: either summarize their shared type (e.g., 'all frontend AI chat apps') OR list each.",
+  "core_value": "2-3 sentences on the most stealable core value of this group (especially when compared side-by-side).",
+  "files_to_read_next": ["3-6 relative paths"],
+  "suggested_questions_if_dynamic_mode": ["5-7 targeted questions"]
+}
+
+[Format for files_to_read_next]
+- Single-repo mode: bare path, e.g., "src/api/chat.ts"
+- Multi-repo mode: MUST use "owner/repo:path" form to indicate which repo each file belongs to, e.g., "vercel/ai-chatbot:components/message.tsx"
+
+[Constraints]
+- files_to_read_next must be REAL paths from the file tree — do not invent paths.
+- In multi-repo, prefer files that enable "meaningful comparison" — e.g., where several repos tackle the same topic (streaming, state, etc.).
+- suggested_questions_if_dynamic_mode: 5-7 questions tightly tied to the [user's current project] AND [the comparative potential of these repos]. Avoid generic stuff already covered by the "fixed seven questions".
+- No explanations, no markdown fences, no characters outside the JSON.
+- Output language: ENGLISH.`;
+
 export function buildStage1User(opts: {
   bundles: RepoBundle[];
   userProjectContext: string;
+  locale?: Locale;
 }): string {
-  const { bundles, userProjectContext } = opts;
+  const { bundles, userProjectContext, locale = "zh" } = opts;
   const n = bundles.length;
+  const isEn = locale === "en";
 
   const reposBlock = bundles
     .map((b, i) => {
@@ -43,12 +68,34 @@ export function buildStage1User(opts: {
       const tree = renderTreeOutline(b.tree, 200);
       const readme = b.readme
         ? truncate(b.readme.content, n === 1 ? 12000 : 6000)
+        : isEn
+        ? "(no README or fetch failed)"
         : "（这个 repo 没有 README 或抓取失败）";
       const manifests = b.manifests.length
         ? b.manifests
             .map((m) => `── ${m.path} ──\n${truncate(m.content, 3000)}`)
             .join("\n\n")
+        : isEn
+        ? "(no common manifest files found)"
         : "（未发现常见清单文件）";
+
+      if (isEn) {
+        return `## Repo ${i + 1}: ${slug}
+- Default branch: ${b.meta.defaultBranch}
+- Description: ${b.meta.description || "(none)"}
+- Primary language: ${b.meta.language || "(unknown)"}
+- Topics: ${b.meta.topics.join(", ") || "(none)"}
+- Stars: ${b.meta.stars}
+
+### README (possibly truncated)
+${readme}
+
+### Manifests / dependencies
+${manifests}
+
+### File tree (2 levels)
+${tree}`;
+      }
 
       return `## Repo ${i + 1}: ${slug}
 - 默认分支：${b.meta.defaultBranch}
@@ -67,6 +114,17 @@ ${manifests}
 ${tree}`;
     })
     .join("\n\n---\n\n");
+
+  if (isEn) {
+    return `# User's current project
+${userProjectContext.trim() || "(not provided — give general suggestions)"}
+
+# Repos to scout (${n} total${n > 1 ? ", comparing them" : ""})
+
+${reposBlock}
+
+Return strict JSON per the STAGE1 system prompt${n > 1 ? '. files_to_read_next MUST use "owner/repo:path" form to indicate which repo each file belongs to' : ""}. No markdown fences.`;
+  }
 
   return `# 用户当前项目背景
 ${userProjectContext.trim() || "（用户未提供，请尽量给通用建议）"}

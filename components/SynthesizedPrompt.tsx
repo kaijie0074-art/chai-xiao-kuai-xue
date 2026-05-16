@@ -5,6 +5,7 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Icon } from "./Icon";
 import { copyToClipboard, downloadAsFile } from "@/lib/utils";
+import { useDict } from "@/lib/i18n";
 
 export function SynthesizedPrompt({
   text,
@@ -17,6 +18,7 @@ export function SynthesizedPrompt({
   onRegenerate?: () => void;
   filenameHint?: string;
 }) {
+  const t = useDict();
   const [copied, setCopied] = useState(false);
 
   const handleCopy = async () => {
@@ -43,9 +45,9 @@ export function SynthesizedPrompt({
       <div className="card-head">
         <div>
           <div className="card-recipe-no" style={{ color: "var(--accent-text)" }}>
-            SYNTHESIZED · STAGE 3
+            {t.synth.badge}
           </div>
-          <h3 className="card-title">AI 提示词 · 合成版</h3>
+          <h3 className="card-title">{t.synth.title}</h3>
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           <button
@@ -54,7 +56,7 @@ export function SynthesizedPrompt({
             type="button"
           >
             <Icon.Copy />
-            {copied ? "已复制" : "复制 Prompt"}
+            {copied ? t.synth.copied : t.synth.copyPrompt}
           </button>
         </div>
       </div>
@@ -62,7 +64,7 @@ export function SynthesizedPrompt({
       <div className="card-body" style={{ padding: "12px 22px 6px" }}>
         <div className="card-section">
           <div className="section-label">
-            <span className="dot" /> 粘到 Claude / ChatGPT / Cursor 让它接着干
+            <span className="dot" /> {t.synth.sectionLabel}
           </div>
           <div className="section-body">
             <ReactMarkdown remarkPlugins={[remarkGfm]}>{text || ""}</ReactMarkdown>
@@ -73,9 +75,7 @@ export function SynthesizedPrompt({
 
       <div className="card-foot">
         <div className="card-foot-hint">
-          {streaming
-            ? "生成中…"
-            : "整合了上面所有卡片 · 一段 prompt 喂给下游 AI 完成你的项目"}
+          {streaming ? t.synth.streaming : t.synth.description}
         </div>
         <div style={{ display: "flex", gap: 6 }}>
           {!streaming && (
@@ -93,7 +93,7 @@ export function SynthesizedPrompt({
               onClick={onRegenerate}
               type="button"
             >
-              <Icon.Refresh /> 重新生成
+              <Icon.Refresh /> {t.synth.regenerate}
             </button>
           )}
         </div>

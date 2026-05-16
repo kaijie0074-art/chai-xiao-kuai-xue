@@ -1,14 +1,21 @@
+"use client";
+
 import Link from "next/link";
 import { Icon } from "./Icon";
+import { useDict, useLocale } from "@/lib/i18n";
 
 const SOURCE_URL = "https://github.com/kaijie0074-art/chai-xiao-kuai-xue";
 
 export function Footer() {
+  const t = useDict();
+  const locale = useLocale();
+  const aboutHref = locale === "en" ? "/en/about" : "/about";
+
   return (
     <footer className="footer">
       <div className="footer-byok">
         <span className="lock-dot" />
-        <span>BYOK · 你的 API Key 仅存在本地浏览器，永不上传服务器</span>
+        <span>{t.footer.byok}</span>
       </div>
       <div
         className="footer-right"
@@ -18,7 +25,7 @@ export function Footer() {
           href={SOURCE_URL}
           target="_blank"
           rel="noopener"
-          title="GitHub 源码"
+          title={t.footer.sourceTitle}
           style={{
             display: "inline-flex",
             alignItems: "center",
@@ -27,9 +34,9 @@ export function Footer() {
           }}
         >
           <Icon.Github />
-          <span style={{ fontSize: 12 }}>源码</span>
+          <span style={{ fontSize: 12 }}>{t.footer.source}</span>
         </a>
-        <Link href="/about">隐私与开源声明 →</Link>
+        <Link href={aboutHref}>{t.footer.privacy}</Link>
       </div>
     </footer>
   );
