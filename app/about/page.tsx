@@ -13,6 +13,7 @@ const TOC = [
   { id: "flow", label: "AI 是怎么思考的" },
   { id: "demo", label: "一个真实示例" },
   { id: "case-douyin", label: "案例 · 抖音数据抓取" },
+  { id: "contact", label: "联系 · 反馈" },
   { id: "privacy", label: "完整隐私声明" },
   { id: "faq", label: "常见问题" },
   { id: "credits", label: "致谢" },
@@ -303,6 +304,133 @@ export default function AboutPage() {
 
             <p style={{ color: "var(--fg-3)", fontSize: 13.5, marginTop: 18 }}>
               如果让我手动从 6 个 repo 里读源码挑出可搬的部分，至少 1-2 天。这次拆解 5 分钟 + 看一遍卡片 30 分钟就搞定——而且<em>每一块的来源清清楚楚</em>，哪天出问题能精确定位到上游 repo。这就是这个工具的真实价值：不是省时间，是<strong>看得见每一块从哪来</strong>。
+            </p>
+          </section>
+
+          {/* CONTACT */}
+          <section id="contact" className="about-block">
+            <h2>联系 · 反馈</h2>
+            <p>
+              这是个人项目，能跑成什么样靠你们一起折腾。Bug / 想法 / 想偷的 repo 帮忙吐槽，怎么舒服怎么来：
+            </p>
+
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
+                gap: 16,
+                marginTop: 20,
+                marginBottom: 16,
+              }}
+            >
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: 18,
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: 0.6,
+                    color: "var(--fg-4)",
+                    textTransform: "uppercase",
+                    marginBottom: 10,
+                  }}
+                >
+                  个人微信
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/contact/wechat-personal.png"
+                  alt="个人微信二维码"
+                  style={{
+                    width: "100%",
+                    maxWidth: 180,
+                    height: "auto",
+                    borderRadius: 6,
+                    background: "white",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 12.5,
+                    color: "var(--fg-3)",
+                  }}
+                >
+                  扫码加我微信
+                  <br />
+                  <span style={{ color: "var(--fg-4)", fontSize: 11.5 }}>
+                    备注「拆小块」
+                  </span>
+                </div>
+              </div>
+
+              <div
+                style={{
+                  background: "var(--surface)",
+                  border: "1px solid var(--border)",
+                  borderRadius: 10,
+                  padding: 18,
+                  textAlign: "center",
+                }}
+              >
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: 11,
+                    letterSpacing: 0.6,
+                    color: "var(--fg-4)",
+                    textTransform: "uppercase",
+                    marginBottom: 10,
+                  }}
+                >
+                  内测群
+                </div>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/contact/wechat-group.png"
+                  alt="内测群二维码"
+                  style={{
+                    width: "100%",
+                    maxWidth: 180,
+                    height: "auto",
+                    borderRadius: 6,
+                    background: "white",
+                  }}
+                />
+                <div
+                  style={{
+                    marginTop: 10,
+                    fontSize: 12.5,
+                    color: "var(--fg-3)",
+                  }}
+                >
+                  「开源项目拆解助手内测群」
+                  <br />
+                  <span style={{ color: "var(--fg-4)", fontSize: 11.5 }}>
+                    若群码过期，扫左边私信我拉你
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <p>
+              不想加微信？去{" "}
+              <a
+                href="https://github.com/kaijie0074-art/chai-xiao-kuai-xue/issues"
+                target="_blank"
+                rel="noopener"
+                style={{ color: "var(--accent-text)", textDecoration: "underline" }}
+              >
+                GitHub Issues
+              </a>{" "}
+              开 issue 也行——bug 报告、功能建议、想拆但拆不动的 repo 都欢迎。
             </p>
           </section>
 
