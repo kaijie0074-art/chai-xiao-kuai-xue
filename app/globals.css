@@ -136,6 +136,10 @@ html, body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+  /* 减少字体回退时的视觉抖动：Geist 加载完成前先用 fallback，
+     禁用合成粗体/斜体（满足 fallback 字体本身的 metric 即可），
+     字号/行高跟 Geist 已经匹配（next/font adjustFontFallback 默认 true）。 */
+  font-synthesis: none;
 }
 body { min-height: 100vh; }
 

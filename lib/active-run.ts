@@ -18,6 +18,7 @@ import {
   type SynthesizePhase,
   type SynthesizeRequest,
 } from "./analyze";
+import { DEMO_EN, DEMO_ZH } from "./demo-data";
 import { useHistory } from "./history";
 import type { Locale } from "./i18n";
 import type { Stage1Output } from "./prompts/stage1";
@@ -27,6 +28,8 @@ interface ActiveRunState {
   // 当前 run 的输入快照（在 startAnalyze 时冻结）
   target: string;
   repos: Array<{ owner: string; repo: string }>;
+  /** 当前 run 是 demo 模拟（不调真实 API、不存历史） */
+  isDemo: boolean;
 
   // Stage 1 / 2
   phase: AnalyzePhase;
@@ -51,6 +54,7 @@ interface ActiveRunState {
 const initialState: ActiveRunState = {
   target: "",
   repos: [],
+  isDemo: false,
   phase: "idle",
   completed: [],
   stage1Text: "",
@@ -266,4 +270,140 @@ export function cancelSynthesize() {
     synthPhase: "idle",
     synthText: "",
   });
+}
+
+/* ───────── Demo（模拟）模式 ───────── */
+
+function abortableSleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
+    const t = setTimeout(resolve, ms);
+    signal.addEventListener(
+      "abort",
+      () => {
+        clearTimeout(t);
+        reject(new DOMException("Aborted", "AbortError"));
+      },
+      { once: true }
+    );
+  });
+}
+
+/**
+ * 走一遍预设的拆解流程，不调任何 API。给没配 key 的访客体验产品全貌用。
+ */
+export async function startDemoAnalyze(opts: { locale: Locale }): Promise<void> {
+  activeAborts.run?.abort();
+  const ac = new AbortController();
+  activeAborts.run = ac;
+
+  const data = opts.locale === "en" ? DEMO_EN : DEMO_ZH;
+
+  // 重置状态 + 标记 demo
+  useActiveRun.setState({
+    ...initialState,
+    target: data.target,
+    repos: [data.repo],
+    isDemo: true,
+    phase: "fetching",
+  });
+
+  try {
+    // Phase 1: 抓取
+    await abortableSleep(1500, ac.signal);
+    useActiveRun.setState((s) => ({
+      completed: dedup([...s.completed, "fetching"]),
+      phase: "stage1",
+    }));
+
+    // Phase 2: Stage 1 流式
+    let acc = "";
+    for (const chunk of data.stage1Chunks) {
+      await abortableSleep(50, ac.signal);
+      acc += chunk;
+      useActiveRun.setState({ stage1Text: acc });
+    }
+    useActiveRun.setState((s) => ({
+      stage1Result: data.stage1Result,
+      keyFiles: data.stage1Result.files_to_read_next,
+      completed: dedup([...s.completed, "stage1"]),
+      phase: "fetching_key_files",
+    }));
+
+    // Phase 3: 抓关键文件
+    await abortableSleep(1500, ac.signal);
+    useActiveRun.setState((s) => ({
+      completed: dedup([...s.completed, "fetching_key_files"]),
+      phase: "stage2",
+    }));
+
+    // Phase 4: Stage 2 流式 + 逐张揭示卡片
+    acc = "";
+    let revealed = 0;
+    const total = data.modules.length;
+    const revealEvery = Math.max(1, Math.floor(data.stage2Chunks.length / (total + 1)));
+
+    for (let i = 0; i < data.stage2Chunks.length; i++) {
+      await abortableSleep(50, ac.signal);
+      acc += data.stage2Chunks[i];
+      if (i > 0 && i % revealEvery === 0 && revealed < total) {
+        revealed++;
+        useActiveRun.setState({
+          stage2Text: acc,
+          modules: data.modules.slice(0, revealed),
+        });
+      } else {
+        useActiveRun.setState({ stage2Text: acc });
+      }
+    }
+
+    // 所有卡片揭完 + done
+    useActiveRun.setState((s) => ({
+      modules: data.modules,
+      completed: dedup([...s.completed, "stage2", "done"]),
+      phase: "done",
+    }));
+    // demo 不保存到历史
+  } catch {
+    // 被 cancel，无需处理
+  } finally {
+    if (activeAborts.run === ac) activeAborts.run = null;
+  }
+}
+
+/**
+ * Demo 合成 prompt，同样是流式模拟。
+ */
+export async function startDemoSynthesize(opts: { locale: Locale }): Promise<void> {
+  activeAborts.synth?.abort();
+  const ac = new AbortController();
+  activeAborts.synth = ac;
+
+  const data = opts.locale === "en" ? DEMO_EN : DEMO_ZH;
+
+  useActiveRun.setState({
+    synthPhase: "running",
+    synthText: "",
+    synthError: null,
+    synthErrorKind: null,
+  });
+
+  try {
+    let acc = "";
+    for (const chunk of data.synthChunks) {
+      await abortableSleep(30, ac.signal);
+      acc += chunk;
+      useActiveRun.setState({ synthText: acc });
+    }
+    useActiveRun.setState({
+      synthPhase: "done",
+    });
+  } catch {
+    // aborted
+  } finally {
+    if (activeAborts.synth === ac) activeAborts.synth = null;
+  }
 }

@@ -21,6 +21,8 @@ import {
   isAnalyzing,
   resetActiveRun,
   startAnalyze,
+  startDemoAnalyze,
+  startDemoSynthesize,
   startSynthesize,
   useActiveRun,
 } from "@/lib/active-run";
@@ -209,12 +211,21 @@ export default function AnalyzePage() {
   };
 
   const handleSynthesize = () => {
+    // demo 模式下走 canned synth；真实模式才打 LLM
+    if (run.isDemo) {
+      void startDemoSynthesize({ locale: "zh" });
+      return;
+    }
     void startSynthesize({
       provider: settings.provider,
       apiKey,
       model,
       baseURL,
     });
+  };
+
+  const handleDemo = () => {
+    void startDemoAnalyze({ locale: "zh" });
   };
 
   const handleExport = () => {
@@ -498,6 +509,19 @@ export default function AnalyzePage() {
             </button>
           )}
 
+          {/* Demo 试用按钮：只在 idle 时显示，让访客零成本体验完整流程 */}
+          {!running && run.phase === "idle" && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ width: "100%", marginTop: 8 }}
+              onClick={handleDemo}
+              type="button"
+              title="用预设数据走一遍完整流程，不消耗任何配额"
+            >
+              🎬 试一下 demo · 不需 Key
+            </button>
+          )}
+
           {(run.phase === "done" || run.phase === "error") && (
             <button
               className="btn btn-ghost btn-sm"
@@ -539,6 +563,44 @@ export default function AnalyzePage() {
 
           {run.phase !== "idle" && run.phase !== "error" && (
             <>
+              {run.isDemo && (
+                <div
+                  style={{
+                    background: "var(--accent-tint)",
+                    border: "1px solid var(--accent-soft)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    marginBottom: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    fontSize: 13,
+                  }}
+                >
+                  <div>
+                    <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>
+                      🎬 Demo 模式
+                    </span>
+                    <span style={{ color: "var(--fg-3)", marginLeft: 8 }}>
+                      这些是预设数据，不是真拆解。想真拆一个 repo？
+                    </span>
+                  </div>
+                  <Link
+                    href="/settings"
+                    style={{
+                      color: "var(--accent-text)",
+                      textDecoration: "underline",
+                      fontSize: 13,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    去设置配 API Key →
+                  </Link>
+                </div>
+              )}
+
               <PhaseStrip phase={run.phase} completed={run.completed} />
 
               {run.phase === "fetching" && (

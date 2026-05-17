@@ -21,6 +21,8 @@ import {
   isAnalyzing,
   resetActiveRun,
   startAnalyze,
+  startDemoAnalyze,
+  startDemoSynthesize,
   startSynthesize,
   useActiveRun,
 } from "@/lib/active-run";
@@ -206,6 +208,10 @@ export default function AnalyzePage() {
   };
 
   const handleSynthesize = () => {
+    if (run.isDemo) {
+      void startDemoSynthesize({ locale: "en" });
+      return;
+    }
     void startSynthesize({
       provider: settings.provider,
       apiKey,
@@ -213,6 +219,10 @@ export default function AnalyzePage() {
       baseURL,
       locale: "en",
     });
+  };
+
+  const handleDemo = () => {
+    void startDemoAnalyze({ locale: "en" });
   };
 
   const handleExport = () => {
@@ -480,6 +490,19 @@ export default function AnalyzePage() {
             </button>
           )}
 
+          {/* Demo button: visible only when idle */}
+          {!running && run.phase === "idle" && (
+            <button
+              className="btn btn-secondary btn-sm"
+              style={{ width: "100%", marginTop: 8 }}
+              onClick={handleDemo}
+              type="button"
+              title="Walk through the full flow with prefab data — costs nothing"
+            >
+              🎬 Try a demo · No key needed
+            </button>
+          )}
+
           {(run.phase === "done" || run.phase === "error") && (
             <button
               className="btn btn-ghost btn-sm"
@@ -521,6 +544,44 @@ export default function AnalyzePage() {
 
           {run.phase !== "idle" && run.phase !== "error" && (
             <>
+              {run.isDemo && (
+                <div
+                  style={{
+                    background: "var(--accent-tint)",
+                    border: "1px solid var(--accent-soft)",
+                    borderRadius: 8,
+                    padding: "10px 14px",
+                    marginBottom: 14,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: 10,
+                    flexWrap: "wrap",
+                    fontSize: 13,
+                  }}
+                >
+                  <div>
+                    <span style={{ color: "var(--accent-text)", fontWeight: 600 }}>
+                      🎬 Demo mode
+                    </span>
+                    <span style={{ color: "var(--fg-3)", marginLeft: 8 }}>
+                      These cards are prefab. Want to dissect a real repo?
+                    </span>
+                  </div>
+                  <Link
+                    href="/en/settings"
+                    style={{
+                      color: "var(--accent-text)",
+                      textDecoration: "underline",
+                      fontSize: 13,
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    Set up API key →
+                  </Link>
+                </div>
+              )}
+
               <PhaseStrip phase={run.phase} completed={run.completed} />
 
               {run.phase === "fetching" && (

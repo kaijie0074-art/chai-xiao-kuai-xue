@@ -113,6 +113,13 @@ export const zh = {
     network: "网络错误。请检查网络连接。",
     unknown: "未知错误。",
   },
+  demo: {
+    tryButton: "🎬 试一下 demo · 不需 Key",
+    tryButtonHint: "用预设数据走一遍完整流程，不消耗任何配额",
+    bannerTitle: "Demo 模式",
+    bannerBody: "上面这些卡片是预设数据，不是真拆解。想真拆？",
+    bannerCta: "去设置配 API Key →",
+  },
 };
 
 type Dict = typeof zh;
@@ -216,6 +223,13 @@ export const en: Dict = {
     bad_request: "Request rejected (HTTP 400). Your provider/model may not accept some params we send — try a different model or provider.",
     network: "Network error. Check your connection.",
     unknown: "Unknown error.",
+  },
+  demo: {
+    tryButton: "🎬 Try a demo · No key needed",
+    tryButtonHint: "Runs through the full flow with prefab data — costs nothing",
+    bannerTitle: "Demo mode",
+    bannerBody: "These cards are prefab data, not a real dissection. Want the real thing?",
+    bannerCta: "Set up your API key →",
   },
 };
 

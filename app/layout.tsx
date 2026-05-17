@@ -62,6 +62,8 @@ export default function RootLayout({
   return (
     <html lang="zh-CN" data-theme="light" className={`${GeistSans.variable} ${GeistMono.variable}`}>
       <head>
+        {/* color-scheme 让浏览器在 React hydrate 之前就用正确的滚动条/表单 UA 控件 */}
+        <meta name="color-scheme" content="light dark" />
         <script dangerouslySetInnerHTML={{ __html: NO_FLASH_THEME_SCRIPT }} />
       </head>
       <body>

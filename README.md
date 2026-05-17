@@ -1,12 +1,43 @@
-# 拆小块学 · GitHub 项目拆解助手 (MVP v0.1)
+# Dissect · 拆小块学
 
-> 不要学习一个项目，学习它对你有用的那一小块。
+> Don&apos;t learn a project. Learn the small piece of it that&apos;s useful to you.
+> 不要学一个项目，学它对你有用的那一小块。
 
-一个纯前端的 GitHub 项目拆解工具。粘贴一个 repo 链接 + 你正在做的项目背景，
-AI 帮你拆出 3-8 张「能直接搬到你项目里」的小模块卡片，每张都附上是什么、
-为什么对你有用、具体怎么搬、源码片段。
+🇺🇸 **English** · [🇨🇳 中文](./README.zh-CN.md)
 
-## 运行
+🌐 **Live**: https://chai-xiao-kuai-xue.vercel.app (bilingual, BYOK, no signup)
+
+---
+
+## What it is
+
+A pure-frontend GitHub project dissector. Paste a repo link + tell it what *you&apos;re* building, and a 2-stage LLM pipeline returns 3-8 stealable module cards — each with what it is, why it helps your project, how to migrate it, plus the actual source code snippet.
+
+Unlike DeepWiki / Copilot Workspace which summarize the whole repo, this tool **uses your project context** to surface only the parts you can actually take.
+
+Optional Stage 3 (one click): roll all the cards into an AI prompt you paste into Claude / ChatGPT / Cursor to have the downstream AI integrate the bits into your project.
+
+## Highlights
+
+- **BYOK**: bring your own key — keys never leave your browser
+- **Multi-repo comparison**: stack 1-N GitHub URLs to compare side-by-side
+- **6 LLM providers**: Anthropic / OpenAI / OpenRouter (OAuth) / DeepSeek / Kimi / Zhipu GLM / custom relay (any OpenAI-compatible base URL)
+- **Bilingual**: full Chinese + English UI (`/` ZH, `/en` EN) including prompts
+- **Local history**: dissection results auto-save to localStorage
+- **Two-stage prompt design**: scout → dissect, so context windows don&apos;t blow up
+- **Zero backend**: pure static prerender, deploys to any CDN
+
+## Stack
+
+- **Next.js 14** App Router · TypeScript · static prerender
+- **Tailwind config + hand-written CSS** (no shadcn dependency)
+- **Zustand** + persist (localStorage)
+- **`@anthropic-ai/sdk`** + **`openai`** SDKs (both with `dangerouslyAllowBrowser`)
+- **`react-markdown` + `remark-gfm`** for card rendering
+- Self-hosted Geist font via `geist` package, Noto Sans SC for OG images
+- **OpenRouter OAuth PKCE** — browser-only sign-in, no backend needed
+
+## Local development
 
 ```bash
 cd web
@@ -14,134 +45,108 @@ npm install
 npm run dev    # http://localhost:3000
 ```
 
-构建生产版本：
+Production build:
 
 ```bash
 npm run build
 npm run start
 ```
 
-## 技术栈
+No `.env` setup needed — every API key is configured in-browser at `/settings`.
 
-- **框架**：Next.js 14（App Router）+ React 18 + TypeScript
-- **样式**：Tailwind CSS 3.x（手写组件，未引入 shadcn/ui）
-- **状态**：Zustand + persist 中间件（localStorage）
-- **Markdown**：react-markdown + remark-gfm
-- **LLM SDK**：`@anthropic-ai/sdk` / `openai`（均启用 `dangerouslyAllowBrowser`）
-- **GitHub**：浏览器直连匿名 Public API（60 次/小时/IP）
-
-## 架构
+## Project structure
 
 ```
 web/
 ├─ app/
-│  ├─ page.tsx          # 落地页 /
-│  ├─ analyze/page.tsx  # 核心拆解页 /analyze
-│  ├─ settings/page.tsx # API Key 配置 /settings
-│  ├─ about/page.tsx    # 理念与隐私 /about
-│  ├─ layout.tsx        # 全局 layout (nav + footer)
-│  └─ globals.css
-├─ components/
-│  ├─ ApiKeySetup.tsx    # Provider 选择 + Key 输入 + Model 下拉
-│  ├─ GitHubInput.tsx    # URL 输入 + userContext textarea
-│  ├─ ModeSelector.tsx   # 固定七问 / AI 动态出题 / 自己出题
-│  ├─ ResultsPanel.tsx   # Stage 1/2 进度 + 模块卡片列表
-│  ├─ ModuleCard.tsx     # 单张卡片（含复制/源文件 chips）
-│  └─ PrivacyNotice.tsx  # BYOK 风险提示
+│  ├─ page.tsx              # landing /
+│  ├─ analyze/              # /analyze (core)
+│  ├─ history/              # /history (local bundle store)
+│  ├─ settings/             # /settings (BYOK)
+│  ├─ about/                # /about (philosophy + privacy)
+│  ├─ oauth/callback/       # OpenRouter PKCE callback
+│  ├─ en/                   # entire English mirror under /en/*
+│  ├─ layout.tsx            # nav + footer + theme + no-flash inline script
+│  ├─ opengraph-image.tsx   # ZH OG image (1200x630, Noto Sans SC)
+│  ├─ en/opengraph-image.tsx # EN OG image
+│  ├─ icon.tsx              # favicon
+│  ├─ sitemap.ts            # sitemap.xml (with hreflang)
+│  └─ robots.ts             # robots.txt
+├─ components/              # ModuleCard / PhaseStrip / Stage1Summary / ...
 ├─ lib/
-│  ├─ analyze.ts         # 两阶段编排 + Markdown 导出
-│  ├─ github.ts          # GitHub 抓取 + sessionStorage 缓存
-│  ├─ store.ts           # Zustand 全局设置（含 persist）
-│  ├─ utils.ts           # cn / parseGitHubUrl / parseLLMJson / 等
-│  ├─ providers/
-│  │  ├─ index.ts        # LLMProvider 接口 + 错误归类
-│  │  ├─ anthropic.ts
-│  │  └─ openai.ts
-│  └─ prompts/
-│     ├─ seven-questions.ts
-│     ├─ stage1.ts       # 侦察阶段 prompt
-│     └─ stage2.ts       # 拆解阶段 prompt
-└─ ...
+│  ├─ analyze.ts            # 2-stage pipeline orchestration
+│  ├─ active-run.ts         # global run state (Zustand, survives route changes)
+│  ├─ history.ts            # bundle persistence
+│  ├─ github.ts             # GitHub public API + optional Token
+│  ├─ store.ts              # settings store (provider/key/model/baseURL)
+│  ├─ i18n.ts               # bilingual dict + useLocale/useDict
+│  ├─ openrouter-oauth.ts   # browser-side PKCE flow
+│  ├─ providers/            # AnthropicProvider / OpenAIProvider /
+│  │                        # OpenRouterProvider / OpenAICompatibleProvider
+│  └─ prompts/              # stage1 / stage2 / synthesize (ZH + EN system prompts)
+└─ public/contact/          # contact QR codes
 ```
 
-## 数据流（两阶段）
+## Data flow
 
 ```
-用户输入 → GitHubInput              ┐
-        + ModeSelector             ├→ runAnalyze()
-        + (Settings.apiKey/model)  ┘        │
-                                            ├─ 1. fetchRepoBundle()       (GitHub Public API)
-                                            ├─ 2. Stage 1 LLM stream     (project_type / core_value
-                                            │                              / files_to_read_next
-                                            │                              / suggested_questions)
-                                            ├─ 3. fetchKeyFiles()         (raw.githubusercontent)
-                                            └─ 4. Stage 2 LLM stream     (modules[])
-                                                  │
-                                                  └→ ResultsPanel → ModuleCard ×N
+User input (URLs + context + modes)
+        │
+        ▼
+runAnalyze() ── lib/active-run.ts ─── Zustand store
+        │
+        ├─ 1. fetchRepoBundle()           (GitHub public API, anon or token)
+        ├─ 2. Stage 1 LLM stream          → project_type / core_value /
+        │                                   files_to_read_next / questions
+        ├─ 3. fetchKeyFiles()              (raw.githubusercontent.com)
+        ├─ 4. Stage 2 LLM stream          → modules[]
+        │
+        ▼
+ResultsPanel → ModuleCard × N
+        │
+        └─ optional Stage 3: runSynthesize() → markdown prompt
 ```
 
-## 隐私（BYOK）
+## Privacy / BYOK
 
-- 你的 API Key 仅保存在浏览器的 `localStorage`（key：`dissect-mvp-settings`）
-- 所有 LLM 请求由浏览器直连官方 API，**没有任何运营方服务器中转**
-- GitHub 抓取使用匿名身份，仅支持公开 repo
-- 无 cookies、无埋点、无第三方追踪
-- 完整声明见 `/about`
+- API key in `localStorage` only (key name: `dissect-mvp-settings`)
+- LLM calls go browser-direct to provider APIs (`dangerouslyAllowBrowser` flag)
+- GitHub fetched via anonymous public API (60/h limit) or your own token
+- No cookies, no analytics, no third-party trackers
+- Audit: `lib/providers/*` + `lib/openrouter-oauth.ts` is where all key handling lives
 
-## 24 条 Criteria 对照表
+Full privacy statement: `/about` page or `/en/about`.
 
-| # | 条目 | 实现位置 | 状态 |
-|---|---|---|---|
-| 1 | 一句话理念明确 | `app/page.tsx` Hero + `app/about/page.tsx` | √ |
-| 2 | 输入：GitHub URL（含 owner/repo 简写） | `components/GitHubInput.tsx` + `lib/utils.ts:parseGitHubUrl` | √ |
-| 3 | 输入：用户项目背景 textarea | `components/GitHubInput.tsx` | √ |
-| 4 | 三种模式：固定七问 / AI 动态出题 / 自己出题 | `components/ModeSelector.tsx` + `lib/prompts/seven-questions.ts` | √ |
-| 5 | 模式可多选 + 至少一项 | `ModeSelector.toggleMode` | √ |
-| 6 | BYOK：API Key 仅本地 localStorage | `lib/store.ts` (zustand persist) | √ |
-| 7 | 支持 Claude + OpenAI 两个 provider | `lib/providers/{anthropic,openai}.ts` | √ |
-| 8 | Provider 抽象出 `stream()` 统一接口 | `lib/providers/index.ts:LLMProvider` | √ |
-| 9 | 启用 `dangerouslyAllowBrowser` 并显著告知用户 | providers + `PrivacyNotice` | √ |
-| 10 | 两阶段拆解（侦察 + 拆模块） | `lib/analyze.ts:runAnalyze` + `prompts/stage1,2` | √ |
-| 11 | Stage 1 输出文件名 → Stage 2 抓真实文件 | `analyze.ts` 调 `fetchKeyFiles` | √ |
-| 12 | 输出结构化卡片（title/what/why/how/code/source） | `lib/prompts/stage2.ts:Module` + `ModuleCard.tsx` | √ |
-| 13 | LLM 流式响应 | providers `stream()` + analyze `consumeStream` | √ |
-| 14 | UI 实时反馈各阶段进度 | `ResultsPanel` phase label + partial text details | √ |
-| 15 | 单张卡片可复制 Markdown | `ModuleCard.handleCopyCard` | √ |
-| 16 | 代码段可单独复制 | `ModuleCard.handleCopyCode` | √ |
-| 17 | 整批导出为 Markdown 文件 | `ResultsPanel` + `lib/analyze.ts:modulesToMarkdown` | √ |
-| 18 | GitHub 限额/私有/404 友好错误 | `lib/github.ts:GitHubError` + `ResultsPanel` | √ |
-| 19 | LLM 401/429/网络错误友好分类 | `lib/providers/index.ts:classifyLLMError` | √ |
-| 20 | repo bundle 缓存 1 小时（sessionStorage） | `lib/github.ts:readCachedBundle` | √ |
-| 21 | 中文界面 + 中文 prompt | 全站 | √ |
-| 22 | 落地页 / 拆解页 / 设置页 / 关于页 4 个路由 | `app/{page,analyze,settings,about}/page.tsx` | √ |
-| 23 | 完整隐私声明页（含 dangerouslyAllowBrowser 风险） | `app/about/page.tsx` + `PrivacyNotice` | √ |
-| 24 | 取消进行中的分析（AbortController） | `app/analyze/page.tsx:handleAbort` + providers signal | √ |
+## i18n
 
-## 已知限制 / 剩余风险
+URLs:
+- `/` — Chinese (default)
+- `/en` — English
 
-1. **GitHub 匿名限额 60/h/IP**：抓 1 个 repo 大约消耗 3-12 次 API（取决于目录数量），
-   重度使用会触发 429。下个版本计划支持可选 GitHub Token。
-2. **私有 repo 不支持**：MVP 只读公开 repo。
-3. **大型 repo 的取舍**：根目录文件树最多取 2 层、至多展开 8 个子目录、
-   关键文件每个最多 40KB、README 最多 12000 字符。超过会截断。
-4. **dangerouslyAllowBrowser**：浏览器扩展或同源脚本理论上能读 Key。
-   生产场景建议为本工具单独申请限额受控的 Key。
-5. **SDK 版本可能漂移**：`@anthropic-ai/sdk` 流式事件结构在不同小版本会变；
-   当前实现兼容 0.39.x 的 `content_block_delta`/`text_delta` 形式。
-6. **流式 UI**：当前用 `<details>` 折叠展示 partial JSON，
-   没有边解析边渲染单张卡片（因为 stage2 是单个 JSON 对象，难以稳健的增量解析）。
-   下个版本可考虑每张卡片单独一次 LLM 调用。
-7. **shadcn/ui 未接入**：PRD 建议用 shadcn/ui，本 MVP 选择手写 Tailwind 组件
-   以降低脚手架体积。视觉风格统一，不影响功能。
-8. **模型列表硬编码**：`lib/store.ts` 里固定了 4 个 Claude + 4 个 OpenAI 型号。
-   新模型上线需要手动加。
-9. **未做端到端测试**：MVP 阶段未引入 Playwright；本次仅做 typecheck + build 验证。
-10. **`claude-opus-4-7` / `claude-sonnet-4-6` 等模型 ID 是占位**：
-    需要按实际可用模型 ID 校准（参见 Anthropic 官方文档）。
+Both share localStorage and history. Switching language via the nav toggle preserves the current page (e.g., `/analyze` ⟷ `/en/analyze`).
+
+Stage prompts are emitted in the active locale — Chinese pages produce Chinese cards, English pages produce English cards.
+
+## Deploy your own
+
+The site is a pure static export. Push to Vercel / Cloudflare Pages / Netlify and it just works. No env vars, no database, no serverless functions.
+
+```bash
+# Vercel one-click
+vercel
+```
 
 ## License
 
-待定（倾向 MIT）。
+MIT (see `LICENSE` — TODO add one).
+
+## Contact / contribute
+
+- Bugs / features: [GitHub Issues](https://github.com/kaijie0074-art/chai-xiao-kuai-xue/issues)
+- Chinese users: WeChat QR codes on the `/about` page
+
+Pull requests welcome — especially for additional LLM providers, prompt improvements, or English UX polish.
 
 ---
-Co-Authored-By: Claude Opus 4.7 (1M context)
+
+Built solo, no subscription, your key your business.
