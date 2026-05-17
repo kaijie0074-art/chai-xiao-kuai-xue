@@ -11,6 +11,7 @@ import { Stage1Summary } from "@/components/Stage1Summary";
 import { FetchingKeyFiles } from "@/components/FetchingKeyFiles";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { SynthesizedPrompt } from "@/components/SynthesizedPrompt";
+import { QuickConfigModal } from "@/components/QuickConfigModal";
 import {
   modulesToMarkdown,
   type SynthesizePhase,
@@ -81,6 +82,7 @@ export default function AnalyzePage() {
   const [stream2Open, setStream2Open] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [extractOpen, setExtractOpen] = useState(false);
+  const [quickConfigOpen, setQuickConfigOpen] = useState(false);
 
   const ctx = draft.ctx;
   const setCtx = draft.setCtx;
@@ -115,6 +117,15 @@ export default function AnalyzePage() {
         setUrlRowsLocal((draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v)));
       }
     }
+    // Landing → /en/analyze?demo=1 auto-start demo
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "1" && useActiveRun.getState().phase === "idle") {
+        const clean = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, "", clean);
+        setTimeout(() => void startDemoAnalyze({ locale: "en" }), 100);
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -285,6 +296,11 @@ export default function AnalyzePage() {
   return (
     <div className="page">
       <Toast msg={toast} onDone={() => setToast(null)} />
+      <QuickConfigModal
+        open={quickConfigOpen}
+        onClose={() => setQuickConfigOpen(false)}
+        onSaved={() => setToast("Saved · ready to dissect")}
+      />
 
       <div className="analyze-grid">
         <aside className="input-panel">
@@ -487,9 +503,13 @@ export default function AnalyzePage() {
                   Set up an API key first
                 </span>
               </div>
-              <Link href="/en/settings" className="btn btn-sm btn-secondary">
-                Open Settings →
-              </Link>
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => setQuickConfigOpen(true)}
+                type="button"
+              >
+                Quick setup →
+              </button>
             </div>
           ) : null}
 
@@ -544,7 +564,10 @@ export default function AnalyzePage() {
 
         <section className="results-panel">
           {run.phase === "idle" && hydrated && !apiKeyReady && (
-            <FirstRunWizard onDemo={handleDemo} />
+            <FirstRunWizard
+              onDemo={handleDemo}
+              onQuickConfig={() => setQuickConfigOpen(true)}
+            />
           )}
 
           {run.phase === "idle" && (!hydrated || apiKeyReady) && (
@@ -670,6 +693,9 @@ export default function AnalyzePage() {
                       </span>
                     ))}
                   </div>
+                  {run.fetchProgress && (
+                    <FetchProgressLine progress={run.fetchProgress} />
+                  )}
                 </div>
               )}
 
@@ -747,6 +773,34 @@ export default function AnalyzePage() {
                       )}
                     </div>
 
+                    {run.phase === "done" && !run.isDemo && (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: "8px 12px",
+                          background: "var(--status-ok-bg)",
+                          border: "1px solid var(--status-ok-border)",
+                          borderRadius: 6,
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11.5,
+                          color: "var(--fg-3)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ color: "var(--status-ok)" }}>✓ this run</span>
+                        <span>{run.githubRequests} → GitHub API</span>
+                        <span>·</span>
+                        <span>{run.llmRequests} → {settings.provider} official</span>
+                        <span>·</span>
+                        <span style={{ color: "var(--status-ok)" }}>
+                          0 → our server
+                        </span>
+                      </div>
+                    )}
+
                     <div className="cards-list">
                       {run.modules.map((m, i) => (
                         <div key={m.id || i} style={{ animation: "fadein .5s both" }}>
@@ -776,7 +830,41 @@ export default function AnalyzePage() {
   );
 }
 
-function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
+function FetchProgressLine({ progress }: { progress: string }) {
+  const lastColon = progress.lastIndexOf(":");
+  const slug = lastColon > 0 ? progress.slice(0, lastColon) : "";
+  const step = lastColon > 0 ? progress.slice(lastColon + 1) : progress;
+  const stepLabels: Record<string, string> = {
+    cache: "from cache",
+    meta: "repo metadata",
+    content: "README + file tree",
+    manifests: "manifest files",
+    done: "✓ done",
+  };
+  const label = stepLabels[step] || step;
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        marginLeft: 22,
+        fontSize: 11.5,
+        color: "var(--fg-4)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {slug && <span style={{ color: "var(--fg-5)" }}>{slug}: </span>}
+      {label}
+    </div>
+  );
+}
+
+function FirstRunWizard({
+  onDemo,
+  onQuickConfig,
+}: {
+  onDemo: () => void;
+  onQuickConfig: () => void;
+}) {
   return (
     <div
       style={{
@@ -811,7 +899,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          two fastest paths
+          three paths
         </span>
       </div>
       <p
@@ -829,7 +917,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
         style={{
           display: "grid",
           gap: 14,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
         }}
       >
         <div
@@ -854,7 +942,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
               flex: 1,
             }}
           >
-            Walk through the full 2-stage dissection + AI prompt synthesis using <code>vercel/ai-chatbot</code> as the demo. Prefab data, <strong>no key required</strong>.
+            Walk through the full 2-stage dissection + AI prompt synthesis. Prefab data, <strong>no key required</strong>.
           </p>
           <button
             className="btn btn-primary btn-sm"
@@ -877,7 +965,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
           }}
         >
           <div style={{ fontSize: 24 }}>🆓</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>Sign in with OpenRouter</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter free models</div>
           <p
             style={{
               margin: 0,
@@ -887,31 +975,50 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
               flex: 1,
             }}
           >
-            One-tap OAuth · free-tier models cost nothing. Want Claude / GPT? Top up $10 at OpenRouter for paid models.
+            One-tap OAuth · free-tier models cost nothing · dissect any public repo.
           </p>
-          <Link href="/en/settings" className="btn btn-secondary btn-sm">
-            Open Settings →
-          </Link>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onQuickConfig}
+            type="button"
+          >
+            Sign in with OpenRouter →
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🔑</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Use your own key</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            Claude / GPT / DeepSeek / Kimi / Zhipu — paste a key in the modal, <strong>without leaving this page</strong>.
+          </p>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onQuickConfig}
+            type="button"
+          >
+            Quick setup →
+          </button>
         </div>
       </div>
-
-      <p
-        style={{
-          marginTop: 20,
-          fontSize: 11.5,
-          color: "var(--fg-4)",
-          lineHeight: 1.6,
-        }}
-      >
-        Have your own Claude / OpenAI key? Sure —{" "}
-        <Link
-          href="/en/settings"
-          style={{ color: "var(--accent-text)", textDecoration: "underline" }}
-        >
-          /settings
-        </Link>{" "}
-        offers 7 providers.
-      </p>
     </div>
   );
 }

@@ -136,7 +136,18 @@ export async function runAnalyze(
           ? `正在抓取 ${repos[0].owner}/${repos[0].repo} ...`
           : `正在并行抓取 ${repos.length} 个 repo ...`,
     });
-    bundles = await Promise.all(repos.map((r) => fetchRepoBundle(r.owner, r.repo)));
+    bundles = await Promise.all(
+      repos.map((r) =>
+        fetchRepoBundle(r.owner, r.repo, {
+          onProgress: (step) => {
+            onUpdate({
+              phase: "fetching",
+              message: `${r.owner}/${r.repo}:${step}`,
+            });
+          },
+        })
+      )
+    );
     onUpdate({
       phase: "fetching",
       message: `抓取完成，进入侦察阶段（共 ${bundles.length} 个 repo）`,

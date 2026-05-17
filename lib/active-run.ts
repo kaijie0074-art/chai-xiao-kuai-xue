@@ -19,6 +19,7 @@ import {
   type SynthesizeRequest,
 } from "./analyze";
 import { DEMO_EN, DEMO_ZH } from "./demo-data";
+import { getGitHubFetchCount, resetGitHubFetchCount } from "./github";
 import { useHistory } from "./history";
 import type { Locale } from "./i18n";
 import type { Stage1Output } from "./prompts/stage1";
@@ -49,6 +50,13 @@ interface ActiveRunState {
   synthText: string;
   synthError: string | null;
   synthErrorKind: string | null;
+
+  // 「0 server」凭据：本次拆解发出的网络请求计数
+  githubRequests: number;
+  llmRequests: number;
+
+  // fetching 阶段的当前子步骤 —— "owner/repo:step" 形式
+  fetchProgress: string | null;
 }
 
 const initialState: ActiveRunState = {
@@ -69,6 +77,9 @@ const initialState: ActiveRunState = {
   synthText: "",
   synthError: null,
   synthErrorKind: null,
+  githubRequests: 0,
+  llmRequests: 0,
+  fetchProgress: null,
 };
 
 export const useActiveRun = create<ActiveRunState>()(() => initialState);
@@ -111,6 +122,7 @@ export async function startAnalyze(
   const ac = new AbortController();
   activeAborts.run = ac;
 
+  resetGitHubFetchCount();
   useActiveRun.setState({
     ...initialState,
     target: req.userProjectContext,
@@ -126,7 +138,9 @@ export async function startAnalyze(
         if (u.phase) patch.phase = u.phase;
 
         if (u.phase === "fetching") {
-          patch.completed = [];
+          if (s.completed.length > 0) patch.completed = [];
+          // u.message 在 fetching 阶段是 "owner/repo:step" 子步骤
+          if (u.message) patch.fetchProgress = u.message;
         }
         if (u.phase === "stage1") {
           if (u.partialText !== undefined) patch.stage1Text = u.partialText;
@@ -156,6 +170,9 @@ export async function startAnalyze(
             "stage2",
             "done",
           ]);
+          // 同步请求计数：2 = Stage 1 + Stage 2 都完成
+          patch.githubRequests = getGitHubFetchCount();
+          patch.llmRequests = 2;
           // 自动保存到历史（每个 run 只存一次）
           if (!s.bundleId && modules.length > 0) {
             const saved = useHistory.getState().save({
@@ -244,6 +261,8 @@ export async function startSynthesize(opts: {
           if (u.phase === "done" && u.result) {
             patch.synthText = u.result;
             patch.synthPhase = "done";
+            // 合成完成 = +1 LLM 请求
+            patch.llmRequests = cur.llmRequests + 1;
             // 回写到历史 bundle
             if (cur.bundleId) {
               useHistory.getState().setPrompt(cur.bundleId, u.result);
@@ -309,6 +328,9 @@ export async function startDemoAnalyze(opts: { locale: Locale }): Promise<void> 
     repos: [data.repo],
     isDemo: true,
     phase: "fetching",
+    // demo 不发任何网络请求 —— 全部是 0
+    githubRequests: 0,
+    llmRequests: 0,
   });
 
   try {

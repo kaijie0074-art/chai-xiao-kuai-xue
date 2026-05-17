@@ -81,6 +81,13 @@ export const zh = {
   fetching: {
     label: "抓取",
   },
+  fetchStep: {
+    cache: "从缓存读取",
+    meta: "项目元信息",
+    content: "README + 文件树",
+    manifests: "依赖清单",
+    done: "✓ 完成",
+  },
   llmError: {
     auth: "API Key 似乎无效或权限不足，请到「设置」检查。Key 仅存在你本地浏览器。",
     rateLimit:
@@ -193,6 +200,13 @@ export const en: Dict = {
   fetchingKeyFiles: "Fetching key files nominated by Stage 1…",
   fetching: {
     label: "Fetching",
+  },
+  fetchStep: {
+    cache: "from cache",
+    meta: "repo metadata",
+    content: "README + file tree",
+    manifests: "manifest files",
+    done: "✓ done",
   },
   llmError: {
     auth: "API key seems invalid or unauthorized. Check Settings. Your key never leaves your browser.",

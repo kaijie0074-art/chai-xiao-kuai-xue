@@ -21,6 +21,20 @@ function getGitHubToken(): string | undefined {
   }
 }
 
+/**
+ * Module-level request counter for the "0 server requests" trust badge.
+ * Bumped on every github.com fetch (API + raw). Reset by active-run at start
+ * of each new dissection. Module-level (not in any store) to avoid a circular
+ * import between github.ts ↔ active-run.ts.
+ */
+let _ghFetchCount = 0;
+export function resetGitHubFetchCount(): void {
+  _ghFetchCount = 0;
+}
+export function getGitHubFetchCount(): number {
+  return _ghFetchCount;
+}
+
 export interface RepoMeta {
   owner: string;
   repo: string;
@@ -59,7 +73,8 @@ export class GitHubError extends Error {
   status?: number;
   kind:
     | "not_found"
-    | "rate_limit"
+    | "rate_limit_github_anon"
+    | "rate_limit_github_token"
     | "private"
     | "network"
     | "unknown";
@@ -107,6 +122,7 @@ export function writeCachedBundle(bundle: RepoBundle) {
 }
 
 async function ghFetch(url: string, init?: RequestInit): Promise<Response> {
+  _ghFetchCount++;
   const token = getGitHubToken();
   let res: Response;
   try {
@@ -140,7 +156,7 @@ function handleStatus(res: Response, owner: string, repo: string): never | void 
   if (res.status === 403 || res.status === 429) {
     const hasToken = !!getGitHubToken();
     throw new GitHubError(
-      "rate_limit",
+      hasToken ? "rate_limit_github_token" : "rate_limit_github_anon",
       hasToken
         ? "GitHub 调用达到限额（5000 次/小时）。等一小时重置，或换一个 token。"
         : "GitHub 匿名调用已达限额（60 次/小时/IP）。\n解决：去设置页填一个 GitHub Token（不需要任何权限），抓取限额会涨到 5000 次/小时。创建：github.com/settings/tokens",
@@ -251,6 +267,7 @@ async function fetchFileText(
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
+  _ghFetchCount++;
   let res: Response;
   try {
     res = await fetch(url);
@@ -294,7 +311,10 @@ async function buildShallowTree(
         });
       }
     } catch (e) {
-      if (e instanceof GitHubError && e.kind === "rate_limit") {
+      if (
+        e instanceof GitHubError &&
+        (e.kind === "rate_limit_github_anon" || e.kind === "rate_limit_github_token")
+      ) {
         throw e;
       }
       // soft-fail per-dir
@@ -303,18 +323,27 @@ async function buildShallowTree(
   return entries;
 }
 
+/** 抓取阶段的子步骤 ID —— UI 层把它映射成本地化文案 */
+export type FetchStep = "cache" | "meta" | "content" | "manifests" | "done";
+
 export async function fetchRepoBundle(
   owner: string,
   repo: string,
-  opts?: { useCache?: boolean }
+  opts?: { useCache?: boolean; onProgress?: (step: FetchStep) => void }
 ): Promise<RepoBundle> {
   const useCache = opts?.useCache !== false;
+  const ping = (s: FetchStep) => opts?.onProgress?.(s);
   if (useCache) {
     const cached = readCachedBundle(owner, repo);
-    if (cached) return cached;
+    if (cached) {
+      ping("cache");
+      return cached;
+    }
   }
 
+  ping("meta");
   const meta = await fetchRepoMeta(owner, repo);
+  ping("content");
   const [readme, tree] = await Promise.all([
     fetchReadme(owner, repo),
     buildShallowTree(owner, repo),
@@ -325,6 +354,9 @@ export async function fetchRepoBundle(
     tree.filter((e) => e.type === "file" && !e.path.includes("/")).map((e) => e.path)
   );
   const manifests: ManifestFile[] = [];
+  if ([...rootFiles].some((p) => MANIFEST_FILES.includes(p))) {
+    ping("manifests");
+  }
   for (const m of MANIFEST_FILES) {
     if (!rootFiles.has(m)) continue;
     try {
@@ -343,6 +375,7 @@ export async function fetchRepoBundle(
     fetchedAt: Date.now(),
   };
   writeCachedBundle(bundle);
+  ping("done");
   return bundle;
 }
 

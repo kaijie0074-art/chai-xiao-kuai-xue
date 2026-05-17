@@ -82,6 +82,16 @@ export const PROVIDER_LABEL: Record<ProviderName, string> = {
   custom: "中转站",
 };
 
+export const PROVIDER_LABEL_EN: Record<ProviderName, string> = {
+  anthropic: "Anthropic",
+  openai: "OpenAI",
+  openrouter: "OpenRouter",
+  deepseek: "DeepSeek",
+  moonshot: "Kimi",
+  zhipu: "Zhipu GLM",
+  custom: "Custom relay",
+};
+
 export const PROVIDER_DESC: Record<ProviderName, string> = {
   anthropic: "直连官方 API",
   openai: "直连官方 API",

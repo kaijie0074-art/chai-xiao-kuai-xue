@@ -59,6 +59,28 @@ export default function LandingPage() {
             Why this exists
           </Link>
         </div>
+
+        <div
+          style={{
+            marginTop: 18,
+            fontSize: 13,
+            color: "var(--fg-4)",
+          }}
+        >
+          or{" "}
+          <Link
+            href="/en/analyze?demo=1"
+            style={{
+              color: "var(--accent-text)",
+              fontWeight: 500,
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            ▶ watch a 30s demo first
+          </Link>
+          {" "}— no key needed, full flow
+        </div>
       </section>
     </div>
   );

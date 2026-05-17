@@ -113,7 +113,16 @@ export default function SettingsPage() {
   const activeModel = hydrated ? getActiveModel(settings) : "";
 
   const updateKey = (k: string) => settings.setKey(activeProvider, k);
-  const updateModel = (m: string) => settings.setModel(activeProvider, m);
+  const updateModel = (m: string) => {
+    settings.setModel(activeProvider, m);
+    setToast(`Switched to ${m}`);
+  };
+
+  const handleProviderChange = (p: ProviderName) => {
+    if (p === settings.provider) return;
+    settings.setProvider(p);
+    setToast(`Switched provider · ${PROVIDER_LABEL_EN[p]}`);
+  };
 
   const handleClear = () => {
     settings.setKey(activeProvider, "");
@@ -202,7 +211,7 @@ export default function SettingsPage() {
                         title={PROVIDER_LABEL_EN[p]}
                         desc={PROVIDER_DESC_EN[p]}
                         active={activeProvider === p}
-                        onSelect={settings.setProvider}
+                        onSelect={handleProviderChange}
                       />
                     ))}
                   </div>

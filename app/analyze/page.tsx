@@ -11,6 +11,7 @@ import { Stage1Summary } from "@/components/Stage1Summary";
 import { FetchingKeyFiles } from "@/components/FetchingKeyFiles";
 import { ErrorBanner } from "@/components/ErrorBanner";
 import { SynthesizedPrompt } from "@/components/SynthesizedPrompt";
+import { QuickConfigModal } from "@/components/QuickConfigModal";
 import {
   modulesToMarkdown,
   type SynthesizePhase,
@@ -65,6 +66,7 @@ export default function AnalyzePage() {
   const [stream2Open, setStream2Open] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [extractOpen, setExtractOpen] = useState(false);
+  const [quickConfigOpen, setQuickConfigOpen] = useState(false);
 
   // 通过 draft store 直接读写 ctx/modes/customQ
   const ctx = draft.ctx;
@@ -103,6 +105,17 @@ export default function AnalyzePage() {
         setUrlRowsLocal((draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v)));
       }
     }
+    // 落地页 → /analyze?demo=1 自动启动 demo
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("demo") === "1" && useActiveRun.getState().phase === "idle") {
+        // 清理 URL 避免刷新二次触发
+        const clean = window.location.pathname + window.location.hash;
+        window.history.replaceState({}, "", clean);
+        // 异步触发 demo，让组件先 mount 完
+        setTimeout(() => void startDemoAnalyze({ locale: "zh" }), 100);
+      }
+    } catch {}
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -292,6 +305,11 @@ export default function AnalyzePage() {
   return (
     <div className="page">
       <Toast msg={toast} onDone={() => setToast(null)} />
+      <QuickConfigModal
+        open={quickConfigOpen}
+        onClose={() => setQuickConfigOpen(false)}
+        onSaved={() => setToast("已保存 · 现在可以开始拆解")}
+      />
 
       <div className="analyze-grid">
         <aside className="input-panel">
@@ -508,9 +526,13 @@ export default function AnalyzePage() {
                   请先配置 API Key
                 </span>
               </div>
-              <Link href="/settings" className="btn btn-sm btn-secondary">
-                去设置 →
-              </Link>
+              <button
+                className="btn btn-sm btn-secondary"
+                onClick={() => setQuickConfigOpen(true)}
+                type="button"
+              >
+                快速配置 →
+              </button>
             </div>
           ) : null}
 
@@ -565,7 +587,10 @@ export default function AnalyzePage() {
 
         <section className="results-panel">
           {run.phase === "idle" && hydrated && !apiKeyReady && (
-            <FirstRunWizard onDemo={handleDemo} />
+            <FirstRunWizard
+              onDemo={handleDemo}
+              onQuickConfig={() => setQuickConfigOpen(true)}
+            />
           )}
 
           {run.phase === "idle" && (!hydrated || apiKeyReady) && (
@@ -691,6 +716,9 @@ export default function AnalyzePage() {
                       </span>
                     ))}
                   </div>
+                  {run.fetchProgress && (
+                    <FetchProgressLine progress={run.fetchProgress} />
+                  )}
                 </div>
               )}
 
@@ -770,6 +798,35 @@ export default function AnalyzePage() {
                       )}
                     </div>
 
+                    {/* 0-server 凭据：让 BYOK 信任可见 */}
+                    {run.phase === "done" && !run.isDemo && (
+                      <div
+                        style={{
+                          marginBottom: 16,
+                          padding: "8px 12px",
+                          background: "var(--status-ok-bg)",
+                          border: "1px solid var(--status-ok-border)",
+                          borderRadius: 6,
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 11.5,
+                          color: "var(--fg-3)",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: 10,
+                          flexWrap: "wrap",
+                        }}
+                      >
+                        <span style={{ color: "var(--status-ok)" }}>✓ 本次拆解</span>
+                        <span>{run.githubRequests} 次 → GitHub API</span>
+                        <span>·</span>
+                        <span>{run.llmRequests} 次 → {settings.provider} 官方接口</span>
+                        <span>·</span>
+                        <span style={{ color: "var(--status-ok)" }}>
+                          0 次 → 拆小块学 服务器
+                        </span>
+                      </div>
+                    )}
+
                     <div className="cards-list">
                       {run.modules.map((m, i) => (
                         <div
@@ -806,7 +863,45 @@ export default function AnalyzePage() {
   );
 }
 
-function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
+/**
+ * 拆 "owner/repo:step" 进度字符串，把 step 翻译成本地化文案。
+ */
+function FetchProgressLine({ progress }: { progress: string }) {
+  // 期待格式 "owner/repo:step"
+  const lastColon = progress.lastIndexOf(":");
+  const slug = lastColon > 0 ? progress.slice(0, lastColon) : "";
+  const step = lastColon > 0 ? progress.slice(lastColon + 1) : progress;
+  const stepLabels: Record<string, string> = {
+    cache: "从缓存读取",
+    meta: "项目元信息",
+    content: "README + 文件树",
+    manifests: "依赖清单",
+    done: "✓ 完成",
+  };
+  const label = stepLabels[step] || step;
+  return (
+    <div
+      style={{
+        marginTop: 8,
+        marginLeft: 22,
+        fontSize: 11.5,
+        color: "var(--fg-4)",
+        fontFamily: "var(--font-mono)",
+      }}
+    >
+      {slug && <span style={{ color: "var(--fg-5)" }}>{slug}: </span>}
+      {label}
+    </div>
+  );
+}
+
+function FirstRunWizard({
+  onDemo,
+  onQuickConfig,
+}: {
+  onDemo: () => void;
+  onQuickConfig: () => void;
+}) {
   return (
     <div
       style={{
@@ -841,7 +936,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
             fontFamily: "var(--font-mono)",
           }}
         >
-          两条最快路径
+          三条路径
         </span>
       </div>
       <p
@@ -859,7 +954,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
         style={{
           display: "grid",
           gap: 14,
-          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+          gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
         }}
       >
         <div
@@ -908,7 +1003,7 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
           }}
         >
           <div style={{ fontSize: 24 }}>🆓</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>用 OpenRouter 免费模型</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter 免费模型</div>
           <p
             style={{
               margin: 0,
@@ -918,31 +1013,51 @@ function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
               flex: 1,
             }}
           >
-            一键 OAuth 登录，免费模型零成本可用，**真拆**任何公开 repo。10 美金不到也能升级到 Claude / GPT。
+            一键 OAuth 登录，免费模型零成本，**真拆**任何公开 repo。
           </p>
-          <Link href="/settings" className="btn btn-secondary btn-sm">
-            去设置 →
-          </Link>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onQuickConfig}
+            type="button"
+          >
+            登录 OpenRouter →
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🔑</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>用你自己的 Key</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            Claude / GPT / DeepSeek / Kimi / 智谱 都行 ·{" "}
+            <strong>不离开此页</strong>，弹窗里填好就用。
+          </p>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={onQuickConfig}
+            type="button"
+          >
+            快速配置 →
+          </button>
         </div>
       </div>
-
-      <p
-        style={{
-          marginTop: 20,
-          fontSize: 11.5,
-          color: "var(--fg-4)",
-          lineHeight: 1.6,
-        }}
-      >
-        想用你自己的 Claude / OpenAI API key？也可以——
-        <Link
-          href="/settings"
-          style={{ color: "var(--accent-text)", textDecoration: "underline" }}
-        >
-          /settings
-        </Link>{" "}
-        里 7 个 provider 任选。
-      </p>
     </div>
   );
 }

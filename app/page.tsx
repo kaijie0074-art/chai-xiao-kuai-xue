@@ -56,6 +56,28 @@ export default function LandingPage() {
             了解理念
           </Link>
         </div>
+
+        <div
+          style={{
+            marginTop: 18,
+            fontSize: 13,
+            color: "var(--fg-4)",
+          }}
+        >
+          或者{" "}
+          <Link
+            href="/analyze?demo=1"
+            style={{
+              color: "var(--accent-text)",
+              fontWeight: 500,
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+            }}
+          >
+            ▶ 先看 30 秒 demo
+          </Link>
+          {" "}—— 不用配 key，直接看完整流程
+        </div>
       </section>
     </div>
   );
