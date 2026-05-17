@@ -27,6 +27,12 @@ export const metadata: Metadata = {
     title: SITE_TITLE,
     description: SITE_DESC,
   },
+  alternates: {
+    languages: {
+      "zh-CN": SITE_URL,
+      en: `${SITE_URL}/en`,
+    },
+  },
 };
 
 const NO_FLASH_THEME_SCRIPT = `
@@ -38,6 +44,13 @@ const NO_FLASH_THEME_SCRIPT = `
   } catch (_) {
     document.documentElement.setAttribute("data-theme", "light");
   }
+  // 根据 URL 路径同步 <html lang>，让 /en/* 上 lang="en"
+  try {
+    var p = location.pathname;
+    if (p === "/en" || p.indexOf("/en/") === 0) {
+      document.documentElement.setAttribute("lang", "en");
+    }
+  } catch (_) {}
 })();
 `;
 

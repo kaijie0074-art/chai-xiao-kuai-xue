@@ -99,6 +99,20 @@ export const zh = {
       "GitHub 调用达到限额（5000 次/小时）。等一小时重置，或换一个 token。",
     networkPrefix: "网络错误：无法访问 GitHub API（",
   },
+  /** 按 errorKind 翻译的错误总览 — UI 层用 */
+  errorByKind: {
+    auth: "API Key 似乎无效或权限不足。请到「设置」检查。",
+    rate_limit: "服务返回限额错误。请稍候再试，或检查账户余额/配额。",
+    rate_limit_github_anon:
+      "GitHub 匿名调用达到限额（60 次/小时）。去设置页填一个 GitHub Token，限额会涨到 5000/小时。",
+    rate_limit_github_token:
+      "GitHub 限额到顶（5000/小时）。等一小时重置，或换一个 token。",
+    not_found: "找不到这个 repo。请检查链接是否正确，或它可能是私有 repo（MVP 仅支持公开 repo）。",
+    private: "这是一个私有 repo。MVP 仅支持公开 repo。",
+    bad_request: "请求被拒绝（HTTP 400）。该 provider / model 可能不支持本工具发送的某些参数，可换 model / provider 试试。",
+    network: "网络错误。请检查网络连接。",
+    unknown: "未知错误。",
+  },
 };
 
 type Dict = typeof zh;
@@ -189,6 +203,19 @@ export const en: Dict = {
     rateLimitWithToken:
       "GitHub quota exhausted (5000/hour). Wait an hour or swap your token.",
     networkPrefix: "Network error: couldn't reach GitHub API (",
+  },
+  errorByKind: {
+    auth: "API key seems invalid or unauthorized. Check Settings.",
+    rate_limit: "Provider returned rate-limit. Wait a bit or check your quota/balance.",
+    rate_limit_github_anon:
+      "GitHub anonymous quota exhausted (60/hour). Paste a GitHub Token in Settings — limit becomes 5000/hour.",
+    rate_limit_github_token:
+      "GitHub quota exhausted (5000/hour). Wait an hour or swap your token.",
+    not_found: "Can't find the repo. Check the URL — it may be private (MVP supports public repos only).",
+    private: "This is a private repo. MVP supports public repos only.",
+    bad_request: "Request rejected (HTTP 400). Your provider/model may not accept some params we send — try a different model or provider.",
+    network: "Network error. Check your connection.",
+    unknown: "Unknown error.",
   },
 };
 

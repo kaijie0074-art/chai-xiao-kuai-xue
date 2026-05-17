@@ -527,6 +527,7 @@ export default function AnalyzePage() {
             <>
               <ErrorBanner
                 msg={run.error}
+                kind={run.errorKind}
                 onRetry={handleRetry}
                 onDismiss={handleReset}
               />
@@ -667,6 +668,7 @@ export default function AnalyzePage() {
                         phase={run.synthPhase}
                         text={run.synthText}
                         error={run.synthError}
+                        errorKind={run.synthErrorKind}
                         onStart={handleSynthesize}
                         onCancel={cancelSynthesize}
                         onRegenerate={handleSynthesize}
@@ -686,6 +688,7 @@ function SynthesizeSection({
   phase,
   text,
   error,
+  errorKind,
   onStart,
   onCancel,
   onRegenerate,
@@ -693,6 +696,7 @@ function SynthesizeSection({
   phase: SynthesizePhase;
   text: string;
   error: string | null;
+  errorKind: string | null;
   onStart: () => void;
   onCancel: () => void;
   onRegenerate: () => void;
@@ -742,21 +746,13 @@ function SynthesizeSection({
         <SynthesizedPrompt text={text} onRegenerate={onRegenerate} />
       )}
 
-      {phase === "error" && (
-        <div className="error-banner">
-          <span className="err-icon">!</span>
-          <div style={{ flex: 1 }}>
-            <h5>合成失败</h5>
-            <p>{error}</p>
-          </div>
-          <button
-            className="btn btn-sm btn-danger"
-            onClick={onRegenerate}
-            type="button"
-          >
-            重试
-          </button>
-        </div>
+      {phase === "error" && error && (
+        <ErrorBanner
+          msg={error}
+          kind={errorKind}
+          title="合成失败"
+          onRetry={onRegenerate}
+        />
       )}
     </div>
   );

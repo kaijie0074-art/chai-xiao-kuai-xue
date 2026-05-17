@@ -37,12 +37,15 @@ interface ActiveRunState {
   modules: Module[];
   keyFiles: string[];
   error: string | null;
+  /** error 的 kind（auth / rate_limit / not_found / 等），UI 用它做本地化 */
+  errorKind: string | null;
   bundleId: string | null;
 
   // Stage 3
   synthPhase: SynthesizePhase;
   synthText: string;
   synthError: string | null;
+  synthErrorKind: string | null;
 }
 
 const initialState: ActiveRunState = {
@@ -56,10 +59,12 @@ const initialState: ActiveRunState = {
   modules: [],
   keyFiles: [],
   error: null,
+  errorKind: null,
   bundleId: null,
   synthPhase: "idle",
   synthText: "",
   synthError: null,
+  synthErrorKind: null,
 };
 
 export const useActiveRun = create<ActiveRunState>()(() => initialState);
@@ -160,6 +165,7 @@ export async function startAnalyze(
         }
         if (u.phase === "error" && u.error) {
           patch.error = u.error;
+          patch.errorKind = u.errorKind ?? "unknown";
         }
         return patch;
       });
@@ -168,6 +174,7 @@ export async function startAnalyze(
     useActiveRun.setState({
       phase: "error",
       error: (e as Error).message || "未知错误",
+      errorKind: "unknown",
     });
   } finally {
     if (activeAborts.run === ac) activeAborts.run = null;
@@ -202,6 +209,7 @@ export async function startSynthesize(opts: {
     useActiveRun.setState({
       synthPhase: "error",
       synthError: "还没有拆出模块，先跑完 Stage 1/2",
+      synthErrorKind: "bad_request",
     });
     return;
   }
@@ -239,6 +247,7 @@ export async function startSynthesize(opts: {
           }
           if (u.phase === "error" && u.error) {
             patch.synthError = u.error;
+            patch.synthErrorKind = u.errorKind ?? "unknown";
             patch.synthPhase = "error";
           }
           return patch;

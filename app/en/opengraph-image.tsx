@@ -1,53 +1,14 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "拆小块学 · GitHub 项目拆解助手";
+export const alt = "Dissect · GitHub project dissection helper";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
 /**
- * 中文需要 fetch 字体——Satori 默认字体不含 CJK。
- * 单一 weight 减小拉取量；多 CDN fallback 增加可靠性。
+ * English OG image — Latin script only, no CJK font fetch needed.
+ * Satori's default Inter font handles English fine.
  */
-const FONT_SOURCES = [
-  "https://cdn.jsdelivr.net/npm/@fontsource/noto-sans-sc@5.0.5/files/noto-sans-sc-chinese-simplified-700-normal.woff",
-  "https://unpkg.com/@fontsource/noto-sans-sc@5.0.5/files/noto-sans-sc-chinese-simplified-700-normal.woff",
-];
-
-async function fetchWithTimeout(url: string, timeoutMs = 25000): Promise<ArrayBuffer | null> {
-  const ctrl = new AbortController();
-  const t = setTimeout(() => ctrl.abort(), timeoutMs);
-  try {
-    const res = await fetch(url, { signal: ctrl.signal });
-    if (!res.ok) return null;
-    return await res.arrayBuffer();
-  } catch {
-    return null;
-  } finally {
-    clearTimeout(t);
-  }
-}
-
-async function loadCjkFont(): Promise<ArrayBuffer | null> {
-  for (const url of FONT_SOURCES) {
-    const data = await fetchWithTimeout(url);
-    if (data) return data;
-  }
-  return null;
-}
-
 export default async function OGImage() {
-  const fontData = await loadCjkFont();
-  const fonts = fontData
-    ? [
-        {
-          name: "Noto Sans SC",
-          data: fontData,
-          weight: 600 as const,
-          style: "normal" as const,
-        },
-      ]
-    : undefined;
-
   return new ImageResponse(
     (
       <div
@@ -59,10 +20,11 @@ export default async function OGImage() {
           flexDirection: "column",
           justifyContent: "space-between",
           padding: "70px 80px",
-          fontFamily: "Noto Sans SC, sans-serif",
+          fontFamily: "Inter, sans-serif",
           color: "#0d0d12",
         }}
       >
+        {/* Top: brand */}
         <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
           <div
             style={{
@@ -80,7 +42,7 @@ export default async function OGImage() {
               display: "flex",
             }}
           >
-            拆小块学
+            Dissect
           </div>
           <div
             style={{
@@ -92,15 +54,16 @@ export default async function OGImage() {
               display: "flex",
             }}
           >
-            GitHub 项目拆解助手 · MVP v0.1
+            GitHub project dissection · MVP v0.1
           </div>
         </div>
 
+        {/* Main message */}
         <div style={{ display: "flex", flexDirection: "column", gap: 28 }}>
           <div
             style={{
-              fontSize: 84,
-              fontWeight: 600,
+              fontSize: 78,
+              fontWeight: 700,
               lineHeight: 1.05,
               letterSpacing: "-0.035em",
               color: "#0d0d12",
@@ -108,27 +71,31 @@ export default async function OGImage() {
               flexDirection: "column",
             }}
           >
-            <span style={{ display: "flex" }}>不要学一个项目，</span>
+            <span style={{ display: "flex" }}>Don&apos;t learn a project.</span>
             <span style={{ display: "flex", alignItems: "baseline" }}>
-              学它对
-              <span style={{ color: "#4954B8", margin: "0 0.05em" }}>你</span>
-              有用的
+              Learn the{" "}
+              <span style={{ color: "#4954B8", margin: "0 0.12em" }}>
+                small piece
+              </span>{" "}
+              of it
             </span>
-            <span style={{ display: "flex" }}>那一小块。</span>
+            <span style={{ display: "flex" }}>that&apos;s useful to you.</span>
           </div>
           <div
             style={{
               fontSize: 26,
               color: "#3f3f46",
               lineHeight: 1.5,
-              maxWidth: 900,
+              maxWidth: 920,
               display: "flex",
             }}
           >
-            贴一个 GitHub 链接 + 你正在做的项目，AI 拆出能直接搬走的小模块卡片。
+            Paste a GitHub link + tell us what you&apos;re building. The AI
+            returns stealable module cards you can drop right in.
           </div>
         </div>
 
+        {/* Bottom: file chips + URL */}
         <div
           style={{
             display: "flex",
@@ -167,14 +134,11 @@ export default async function OGImage() {
               display: "flex",
             }}
           >
-            chai-xiao-kuai-xue.vercel.app
+            chai-xiao-kuai-xue.vercel.app/en
           </div>
         </div>
       </div>
     ),
-    {
-      ...size,
-      fonts,
-    }
+    { ...size }
   );
 }
