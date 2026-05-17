@@ -310,6 +310,30 @@ export default function SettingsPage() {
             )}
           </div>
 
+          {activeProvider === "anthropic" && (
+            <div className="field">
+              <label className="label">
+                Custom baseURL <span style={{ color: "var(--fg-4)", fontWeight: 400 }}>· optional</span>
+              </label>
+              <input
+                className="input mono"
+                value={settings.anthropicBaseURL}
+                onChange={(e) => settings.setAnthropicBaseURL(e.target.value)}
+                placeholder="Leave empty to use the official api.anthropic.com"
+              />
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 11.5,
+                  color: "var(--fg-4)",
+                  lineHeight: 1.5,
+                }}
+              >
+                Set this to route through a Claude-compatible relay (e.g. https://your-claude-relay.com). The SDK appends /v1/messages itself — do not include the endpoint path.
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
             {activeProvider !== "openrouter" && (
               <button

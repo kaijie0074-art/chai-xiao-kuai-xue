@@ -296,6 +296,30 @@ export default function SettingsPage() {
             )}
           </div>
 
+          {activeProvider === "anthropic" && (
+            <div className="field">
+              <label className="label">
+                自定义 baseURL <span style={{ color: "var(--fg-4)", fontWeight: 400 }}>· 可选</span>
+              </label>
+              <input
+                className="input mono"
+                value={settings.anthropicBaseURL}
+                onChange={(e) => settings.setAnthropicBaseURL(e.target.value)}
+                placeholder="留空走官方 api.anthropic.com"
+              />
+              <div
+                style={{
+                  marginTop: 6,
+                  fontSize: 11.5,
+                  color: "var(--fg-4)",
+                  lineHeight: 1.5,
+                }}
+              >
+                填了就走自定义 Claude 中转站（例如 https://your-claude-relay.com）。SDK 会自动追加 /v1/messages 路径，**不要带 endpoint 路径**。
+              </div>
+            </div>
+          )}
+
           <div style={{ display: "flex", gap: 10, marginTop: 24, flexWrap: "wrap" }}>
             {activeProvider !== "openrouter" && (
               <button

@@ -29,7 +29,11 @@ export interface LLMProvider {
 export interface ProviderConfig {
   apiKey: string;
   model: string;
-  /** Only used by `custom`; ignored by named providers. */
+  /**
+   * Custom endpoint URL. Used by `custom` (mandatory) and `anthropic`
+   * (optional — leave empty to hit the official api.anthropic.com).
+   * Other named providers ignore this.
+   */
   baseURL?: string;
 }
 

@@ -12,9 +12,13 @@ export class AnthropicProvider implements LLMProvider {
     if (!config.apiKey) {
       throw new Error("缺少 Anthropic API Key");
     }
+    // Optional custom baseURL lets users point at Anthropic-format relays
+    // (common in mainland China for Claude access).
+    const baseURL = config.baseURL?.trim() || undefined;
     this.client = new Anthropic({
       apiKey: config.apiKey,
       dangerouslyAllowBrowser: true,
+      ...(baseURL ? { baseURL } : {}),
     });
     this.model = config.model || DEFAULT_ANTHROPIC_MODEL;
   }

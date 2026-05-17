@@ -119,6 +119,10 @@ export interface SettingsState {
   zhipuModel: string;
   customModel: string;
   customBaseURL: string;
+  /** Optional baseURL for the Anthropic provider — lets users route to
+   *  Claude-compatible relays (e.g. jmrai.net) instead of api.anthropic.com.
+   *  Empty string = use the official endpoint. */
+  anthropicBaseURL: string;
   /** GitHub Personal Access Token (可选)，无任何权限的空白 token 即可把抓取限额从 60 涨到 5000/小时 */
   githubToken: string;
   acknowledgedRisk: boolean;
@@ -126,6 +130,7 @@ export interface SettingsState {
   setKey: (provider: ProviderName, k: string) => void;
   setModel: (provider: ProviderName, m: string) => void;
   setCustomBaseURL: (u: string) => void;
+  setAnthropicBaseURL: (u: string) => void;
   setGitHubToken: (t: string) => void;
   setAcknowledgedRisk: (v: boolean) => void;
   clearKeys: () => void;
@@ -150,6 +155,7 @@ export const useSettings = create<SettingsState>()(
       zhipuModel: DEFAULT_ZHIPU_MODEL,
       customModel: DEFAULT_CUSTOM_MODEL,
       customBaseURL: "",
+      anthropicBaseURL: "",
       githubToken: "",
       acknowledgedRisk: false,
       setProvider: (p) => set({ provider: p }),
@@ -178,6 +184,7 @@ export const useSettings = create<SettingsState>()(
         set({ [map[provider]]: m } as Partial<SettingsState>);
       },
       setCustomBaseURL: (u) => set({ customBaseURL: u }),
+      setAnthropicBaseURL: (u) => set({ anthropicBaseURL: u }),
       setGitHubToken: (t) => set({ githubToken: t }),
       setAcknowledgedRisk: (v) => set({ acknowledgedRisk: v }),
       clearKeys: () =>
@@ -198,7 +205,7 @@ export const useSettings = create<SettingsState>()(
           ? window.localStorage
           : (undefined as unknown as Storage)
       ),
-      version: 5,
+      version: 6,
       migrate: (persisted) => {
         const s = (persisted ?? {}) as Partial<SettingsState>;
         const validProviders: ProviderName[] = [
@@ -207,6 +214,10 @@ export const useSettings = create<SettingsState>()(
         ];
         if (!s.provider || !validProviders.includes(s.provider)) {
           s.provider = "anthropic";
+        }
+        // v6: anthropicBaseURL was added.
+        if (typeof s.anthropicBaseURL !== "string") {
+          s.anthropicBaseURL = "";
         }
         return s as SettingsState;
       },
@@ -238,8 +249,9 @@ export function getActiveModel(s: SettingsState): string {
   }
 }
 
-/** baseURL is meaningful only for "custom"; other providers hardcode their endpoint */
+/** baseURL is meaningful for `custom` (mandatory) and `anthropic` (optional override) */
 export function getActiveBaseURL(s: SettingsState): string | undefined {
   if (s.provider === "custom") return s.customBaseURL || undefined;
+  if (s.provider === "anthropic") return s.anthropicBaseURL || undefined;
   return undefined;
 }
