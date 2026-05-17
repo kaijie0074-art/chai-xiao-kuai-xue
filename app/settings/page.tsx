@@ -32,14 +32,28 @@ const PRESET_MODELS: Record<
   zhipu: ZHIPU_MODELS,
 };
 
-const PROVIDER_ORDER: ProviderName[] = [
-  "anthropic",
-  "openai",
-  "openrouter",
-  "deepseek",
-  "moonshot",
-  "zhipu",
-  "custom",
+/** Provider 按"使用门槛"分组，新用户直觉路径：推荐 → 国内 → 官方 → 高级 */
+const PROVIDER_GROUPS: { label: string; hint?: string; items: ProviderName[] }[] = [
+  {
+    label: "推荐 · 免费起步",
+    hint: "OAuth 一键登录就能用，含免费模型",
+    items: ["openrouter"],
+  },
+  {
+    label: "国内可访问",
+    hint: "无需国际网络，按 token 计费便宜",
+    items: ["deepseek", "moonshot", "zhipu"],
+  },
+  {
+    label: "直连官方",
+    hint: "需国际网络 · 模型最稳",
+    items: ["anthropic", "openai"],
+  },
+  {
+    label: "高级",
+    hint: "自定义 baseURL · 本地 / 第三方中转",
+    items: ["custom"],
+  },
 ];
 
 const KEY_PLACEHOLDER: Record<ProviderName, string> = {
@@ -137,19 +151,45 @@ export default function SettingsPage() {
         <div className="card-panel">
           <div className="field">
             <label className="label">Provider</label>
-            <div
-              className="provider-radio"
-              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}
-            >
-              {PROVIDER_ORDER.map((p) => (
-                <ProviderOption
-                  key={p}
-                  value={p}
-                  title={PROVIDER_LABEL[p]}
-                  desc={PROVIDER_DESC[p]}
-                  active={activeProvider === p}
-                  onSelect={settings.setProvider}
-                />
+            <div style={{ display: "grid", gap: 14 }}>
+              {PROVIDER_GROUPS.map((g) => (
+                <div key={g.label}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "baseline",
+                      gap: 10,
+                      marginBottom: 6,
+                      fontSize: 11,
+                      fontFamily: "var(--font-mono)",
+                      color: "var(--fg-4)",
+                      letterSpacing: 0.5,
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    <span>{g.label}</span>
+                    {g.hint && (
+                      <span style={{ color: "var(--fg-5)", textTransform: "none", letterSpacing: 0 }}>
+                        · {g.hint}
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className="provider-radio"
+                    style={{ gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))" }}
+                  >
+                    {g.items.map((p) => (
+                      <ProviderOption
+                        key={p}
+                        value={p}
+                        title={PROVIDER_LABEL[p]}
+                        desc={PROVIDER_DESC[p]}
+                        active={activeProvider === p}
+                        onSelect={settings.setProvider}
+                      />
+                    ))}
+                  </div>
+                </div>
               ))}
             </div>
           </div>

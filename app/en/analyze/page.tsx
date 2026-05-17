@@ -34,6 +34,7 @@ import {
   type ProviderName,
 } from "@/lib/store";
 import { downloadAsFile, extractGitHubRepos, parseGitHubUrl } from "@/lib/utils";
+import { useInputDraft } from "@/lib/input-draft";
 
 const PROVIDER_LABEL_EN: Record<ProviderName, string> = {
   anthropic: "Anthropic",
@@ -55,7 +56,7 @@ const SEVEN_QUESTIONS_EN = [
   "UX design for auth and API key management? BYOK vs server-side proxy trade-offs?",
 ];
 
-type Mode = "fixed" | "dynamic" | "custom";
+type Mode = "fixed" | "custom";
 
 interface UrlRow {
   id: string;
@@ -70,24 +71,51 @@ export default function AnalyzePage() {
   const [hydrated, setHydrated] = useState(false);
   const settings = useSettings();
   const run = useActiveRun();
+  const draft = useInputDraft();
 
-  const [urlRows, setUrlRows] = useState<UrlRow[]>([newRow("")]);
-  const [ctx, setCtx] = useState("");
-  const [modes, setModes] = useState<Mode[]>(["fixed"]);
-  const [customQ, setCustomQ] = useState("");
+  const [urlRows, setUrlRowsLocal] = useState<UrlRow[]>(() =>
+    (draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v))
+  );
   const [toast, setToast] = useState<string | null>(null);
   const [stream1Open, setStream1Open] = useState(false);
   const [stream2Open, setStream2Open] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [extractOpen, setExtractOpen] = useState(false);
 
+  const ctx = draft.ctx;
+  const setCtx = draft.setCtx;
+  const modes = draft.modes;
+  const setModes = (next: Mode[]) => draft.setModes(next);
+  const customQ = draft.customQ;
+  const setCustomQ = draft.setCustomQ;
+
+  const setUrlRows: (
+    updater: UrlRow[] | ((rows: UrlRow[]) => UrlRow[])
+  ) => void = (updater) => {
+    setUrlRowsLocal((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      draft.setUrls(next.map((r) => r.value));
+      return next;
+    });
+  };
+
   useEffect(() => {
     setHydrated(true);
     const r = useActiveRun.getState();
     if (r.phase !== "idle" && r.repos.length > 0) {
-      setUrlRows(r.repos.map((rr) => newRow(`${rr.owner}/${rr.repo}`)));
-      setCtx(r.target);
+      const rows = r.repos.map((rr) => newRow(`${rr.owner}/${rr.repo}`));
+      setUrlRowsLocal(rows);
+      draft.setUrls(rows.map((rr) => rr.value));
+      draft.setCtx(r.target);
+    } else {
+      if (
+        draft.urls.length > 0 &&
+        draft.urls.join("|") !== urlRows.map((r) => r.value).join("|")
+      ) {
+        setUrlRowsLocal((draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v)));
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -251,7 +279,7 @@ export default function AnalyzePage() {
   };
 
   const toggleMode = (m: Mode) => {
-    setModes((prev) => (prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]));
+    setModes(modes.includes(m) ? modes.filter((x) => x !== m) : [...modes, m]);
   };
 
   return (
@@ -411,7 +439,6 @@ export default function AnalyzePage() {
               {(
                 [
                   { id: "fixed", label: "Fixed seven" },
-                  { id: "dynamic", label: "AI-suggested" },
                   { id: "custom", label: "Your own" },
                 ] as { id: Mode; label: string }[]
               ).map((m) => (
@@ -516,7 +543,11 @@ export default function AnalyzePage() {
         </aside>
 
         <section className="results-panel">
-          {run.phase === "idle" && (
+          {run.phase === "idle" && hydrated && !apiKeyReady && (
+            <FirstRunWizard onDemo={handleDemo} />
+          )}
+
+          {run.phase === "idle" && (!hydrated || apiKeyReady) && (
             <div className="results-empty">
               <div className="empty-illo">
                 <Icon.Magnify />
@@ -536,9 +567,36 @@ export default function AnalyzePage() {
                 onRetry={handleRetry}
                 onDismiss={handleReset}
               />
-              <div className="results-empty" style={{ height: 240 }}>
-                <p>Tweak and retry — your inputs are still here.</p>
-              </div>
+              {run.modules.length > 0 ? (
+                <>
+                  <div className="cards-header" style={{ marginTop: 14 }}>
+                    <div className="count">
+                      Salvaged <span className="accent">{run.modules.length}</span> card{run.modules.length === 1 ? "" : "s"}
+                      <span
+                        style={{
+                          color: "var(--fg-4)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 13,
+                          marginLeft: 10,
+                        }}
+                      >
+                        · stream died mid-way, but what we got is usable
+                      </span>
+                    </div>
+                  </div>
+                  <div className="cards-list">
+                    {run.modules.map((m, i) => (
+                      <div key={m.id || i} style={{ animation: "fadein .5s both" }}>
+                        <ModuleCard module={m} index={i} onTear={onCardTear} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="results-empty" style={{ height: 240 }}>
+                  <p>Tweak and retry — your inputs are still here.</p>
+                </div>
+              )}
             </>
           )}
 
@@ -714,6 +772,146 @@ export default function AnalyzePage() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
+  return (
+    <div
+      style={{
+        padding: "32px 28px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          marginBottom: 6,
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          👋 First time here?
+        </h3>
+        <span
+          style={{
+            color: "var(--fg-3)",
+            fontSize: 13,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          two fastest paths
+        </span>
+      </div>
+      <p
+        style={{
+          color: "var(--fg-3)",
+          fontSize: 13.5,
+          lineHeight: 1.65,
+          margin: "0 0 22px",
+        }}
+      >
+        Don&apos;t bother with API keys yet — try the flow first.
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        }}
+      >
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🎬</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Try a demo</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            Walk through the full 2-stage dissection + AI prompt synthesis using <code>vercel/ai-chatbot</code> as the demo. Prefab data, <strong>no key required</strong>.
+          </p>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onDemo}
+            type="button"
+          >
+            Start demo →
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🆓</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Sign in with OpenRouter</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            One-tap OAuth · free-tier models cost nothing. Want Claude / GPT? Top up $10 at OpenRouter for paid models.
+          </p>
+          <Link href="/en/settings" className="btn btn-secondary btn-sm">
+            Open Settings →
+          </Link>
+        </div>
+      </div>
+
+      <p
+        style={{
+          marginTop: 20,
+          fontSize: 11.5,
+          color: "var(--fg-4)",
+          lineHeight: 1.6,
+        }}
+      >
+        Have your own Claude / OpenAI key? Sure —{" "}
+        <Link
+          href="/en/settings"
+          style={{ color: "var(--accent-text)", textDecoration: "underline" }}
+        >
+          /settings
+        </Link>{" "}
+        offers 7 providers.
+      </p>
     </div>
   );
 }

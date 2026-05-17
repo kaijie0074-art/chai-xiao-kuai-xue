@@ -238,6 +238,7 @@ export async function runAnalyze(
   }
 
   // ---------- Stage 2 ----------
+  let stage2AccText = "";
   try {
     onUpdate({ phase: "stage2", message: "Stage 2：LLM 正在拆解模块 ..." });
     const user = buildStage2User({
@@ -256,8 +257,13 @@ export async function runAnalyze(
         signal,
         maxTokens: 4096,
       }),
-      (partial) => onUpdate({ phase: "stage2", partialText: partial })
+      (partial) => {
+        // 同步 partial 到外层变量，error 时可以做部分恢复
+        stage2AccText = partial;
+        onUpdate({ phase: "stage2", partialText: partial });
+      }
     );
+    stage2AccText = text;
     const parsed = parseLLMJson<Stage2Output>(text);
     if (!parsed || !Array.isArray(parsed.modules)) {
       throw new Error("Stage 2 输出缺少 modules 数组");
@@ -266,11 +272,20 @@ export async function runAnalyze(
     onUpdate({ phase: "done", stage2: parsed });
   } catch (e) {
     const err = classifyLLMError(e);
+    // 部分恢复：扫描已经流出的文本，把完整的 module object 救出来
+    const rescued = extractPartialModules(stage2AccText);
+    if (rescued.length > 0) {
+      // 先把抢救到的卡片推到 store，让 UI 立刻看见
+      onUpdate({
+        phase: "stage2",
+        stage2: { modules: rescued },
+      });
+    }
     onUpdate({
       phase: "error",
       error:
         err.kind === "unknown"
-          ? `Stage 2 失败：${err.message}`
+          ? `Stage 2 失败：${err.message}${rescued.length > 0 ? `（已抢救出 ${rescued.length} 张卡片）` : ""}`
           : err.message,
       errorKind: err.kind,
     });
@@ -288,6 +303,69 @@ function sanitizeModule(m: Partial<Module>, idx: number): Module {
     code_snippet: m.code_snippet || "",
     source_files: Array.isArray(m.source_files) ? m.source_files : [],
   };
+}
+
+/**
+ * 从 Stage 2 部分流式输出里抢救出已完整的 module 对象。
+ *
+ * Stage 2 失败场景（网络断、限额、模型截断）下，整体 JSON parse 必然失败，
+ * 但中间可能有 N 个完整的 `{...}` 已经流出来了。手写一个 brace-balanced
+ * 扫描器逐个抽出来，每个完整 object 单独 JSON.parse + sanitize。
+ *
+ * 比让用户白等几十秒后看到一片空有用得多。
+ */
+export function extractPartialModules(text: string): Module[] {
+  if (!text) return [];
+  const modulesIdx = text.indexOf('"modules"');
+  if (modulesIdx < 0) return [];
+  const bracketIdx = text.indexOf("[", modulesIdx);
+  if (bracketIdx < 0) return [];
+
+  const out: Module[] = [];
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+  let objStart = -1;
+
+  for (let i = bracketIdx + 1; i < text.length; i++) {
+    const ch = text[i];
+    if (escape) {
+      escape = false;
+      continue;
+    }
+    if (ch === "\\") {
+      escape = true;
+      continue;
+    }
+    if (ch === '"') {
+      inString = !inString;
+      continue;
+    }
+    if (inString) continue;
+
+    if (ch === "{") {
+      if (depth === 0) objStart = i;
+      depth++;
+    } else if (ch === "}") {
+      depth--;
+      if (depth === 0 && objStart >= 0) {
+        const objText = text.slice(objStart, i + 1);
+        try {
+          const parsed = JSON.parse(objText) as Partial<Module>;
+          if (parsed && typeof parsed === "object" && parsed.title) {
+            out.push(sanitizeModule(parsed, out.length));
+          }
+        } catch {
+          // 单个 object 也可能因为内嵌字符串里的怪转义 parse 失败 —— 跳过
+        }
+        objStart = -1;
+      }
+    } else if (ch === "]" && depth === 0) {
+      break;
+    }
+  }
+
+  return out;
 }
 
 export function modulesToMarkdown(opts: {

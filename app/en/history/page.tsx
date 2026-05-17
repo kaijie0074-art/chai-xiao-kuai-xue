@@ -23,6 +23,22 @@ export default function HistoryPage() {
   );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
   const [toast, setToast] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
+
+  const filtered = (() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return bundles;
+    return bundles.filter((b) => {
+      if (b.target.toLowerCase().includes(q)) return true;
+      for (const r of b.repos) {
+        if (`${r.owner}/${r.repo}`.toLowerCase().includes(q)) return true;
+      }
+      for (const m of b.modules) {
+        if (m.title.toLowerCase().includes(q)) return true;
+      }
+      return false;
+    });
+  })();
 
   useEffect(() => {
     if (useHistory.persist.hasHydrated()) {
@@ -115,18 +131,49 @@ export default function HistoryPage() {
           </p>
         </div>
       ) : (
-        <div style={{ display: "grid", gap: 14 }}>
-          {bundles.map((b) => (
-            <BundleCard
-              key={b.id}
-              bundle={b}
-              isExpanded={expanded.has(b.id)}
-              onToggle={() => toggle(b.id)}
-              onDelete={() => handleDelete(b.id)}
-              onExport={() => handleExport(b)}
-            />
-          ))}
-        </div>
+        <>
+          {bundles.length > 2 && (
+            <div style={{ marginBottom: 16 }}>
+              <input
+                className="input mono"
+                placeholder="Search: project context / repo / card title"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                style={{ fontSize: 13 }}
+              />
+              {query && filtered.length !== bundles.length && (
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 12,
+                    color: "var(--fg-4)",
+                    fontFamily: "var(--font-mono)",
+                  }}
+                >
+                  {filtered.length} / {bundles.length} matched
+                </div>
+              )}
+            </div>
+          )}
+          <div style={{ display: "grid", gap: 14 }}>
+            {filtered.length === 0 ? (
+              <div className="results-empty" style={{ height: 200 }}>
+                <p>No matches.</p>
+              </div>
+            ) : (
+              filtered.map((b) => (
+                <BundleCard
+                  key={b.id}
+                  bundle={b}
+                  isExpanded={expanded.has(b.id)}
+                  onToggle={() => toggle(b.id)}
+                  onDelete={() => handleDelete(b.id)}
+                  onExport={() => handleExport(b)}
+                />
+              ))
+            )}
+          </div>
+        </>
       )}
     </div>
   );

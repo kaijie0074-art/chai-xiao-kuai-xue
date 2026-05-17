@@ -35,8 +35,9 @@ import {
   useSettings,
 } from "@/lib/store";
 import { downloadAsFile, extractGitHubRepos, parseGitHubUrl } from "@/lib/utils";
+import { useInputDraft } from "@/lib/input-draft";
 
-type Mode = "fixed" | "dynamic" | "custom";
+type Mode = "fixed" | "custom";
 
 interface UrlRow {
   id: string;
@@ -52,26 +53,57 @@ export default function AnalyzePage() {
   const settings = useSettings();
   // 整个 run 状态从全局 store 来——切 Tab 不丢
   const run = useActiveRun();
+  // 输入草稿持久化到 localStorage —— 刷新/切 tab 不丢
+  const draft = useInputDraft();
 
-  // 输入是 page-local
-  const [urlRows, setUrlRows] = useState<UrlRow[]>([newRow("")]);
-  const [ctx, setCtx] = useState("");
-  const [modes, setModes] = useState<Mode[]>(["fixed"]);
-  const [customQ, setCustomQ] = useState("");
+  // 本地 UrlRow 维护（带 id），从 draft.urls 派生
+  const [urlRows, setUrlRowsLocal] = useState<UrlRow[]>(() =>
+    (draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v))
+  );
   const [toast, setToast] = useState<string | null>(null);
   const [stream1Open, setStream1Open] = useState(false);
   const [stream2Open, setStream2Open] = useState(false);
   const [extractText, setExtractText] = useState("");
   const [extractOpen, setExtractOpen] = useState(false);
 
+  // 通过 draft store 直接读写 ctx/modes/customQ
+  const ctx = draft.ctx;
+  const setCtx = draft.setCtx;
+  const modes = draft.modes;
+  const setModes = (next: Mode[]) => draft.setModes(next);
+  const customQ = draft.customQ;
+  const setCustomQ = draft.setCustomQ;
+
+  // 包一层 setUrlRows，自动把当前 url 值同步进 draft
+  const setUrlRows: (
+    updater: UrlRow[] | ((rows: UrlRow[]) => UrlRow[])
+  ) => void = (updater) => {
+    setUrlRowsLocal((prev) => {
+      const next = typeof updater === "function" ? updater(prev) : updater;
+      draft.setUrls(next.map((r) => r.value));
+      return next;
+    });
+  };
+
   useEffect(() => {
     setHydrated(true);
-    // 切回来时若 store 里有运行/刚完成的 run，恢复输入框内容
+    // 切回来时若 store 里有运行/刚完成的 run，恢复输入框内容（优先于 draft）
     const r = useActiveRun.getState();
     if (r.phase !== "idle" && r.repos.length > 0) {
-      setUrlRows(r.repos.map((rr) => newRow(`${rr.owner}/${rr.repo}`)));
-      setCtx(r.target);
+      const rows = r.repos.map((rr) => newRow(`${rr.owner}/${rr.repo}`));
+      setUrlRowsLocal(rows);
+      draft.setUrls(rows.map((rr) => rr.value));
+      draft.setCtx(r.target);
+    } else {
+      // draft 已 hydrate；如果 draft.urls 跟当前 rows 不一致（hydration 后），同步过来
+      if (
+        draft.urls.length > 0 &&
+        draft.urls.join("|") !== urlRows.map((r) => r.value).join("|")
+      ) {
+        setUrlRowsLocal((draft.urls.length > 0 ? draft.urls : [""]).map((v) => newRow(v)));
+      }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // 自动展开当前阶段的 stream view
@@ -254,9 +286,7 @@ export default function AnalyzePage() {
   };
 
   const toggleMode = (m: Mode) => {
-    setModes((prev) =>
-      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m]
-    );
+    setModes(modes.includes(m) ? modes.filter((x) => x !== m) : [...modes, m]);
   };
 
   return (
@@ -427,7 +457,6 @@ export default function AnalyzePage() {
               {(
                 [
                   { id: "fixed", label: "固定七问" },
-                  { id: "dynamic", label: "AI 动态出题" },
                   { id: "custom", label: "自己出题" },
                 ] as { id: Mode; label: string }[]
               ).map((m) => (
@@ -535,7 +564,11 @@ export default function AnalyzePage() {
         </aside>
 
         <section className="results-panel">
-          {run.phase === "idle" && (
+          {run.phase === "idle" && hydrated && !apiKeyReady && (
+            <FirstRunWizard onDemo={handleDemo} />
+          )}
+
+          {run.phase === "idle" && (!hydrated || apiKeyReady) && (
             <div className="results-empty">
               <div className="empty-illo">
                 <Icon.Magnify />
@@ -555,9 +588,36 @@ export default function AnalyzePage() {
                 onRetry={handleRetry}
                 onDismiss={handleReset}
               />
-              <div className="results-empty" style={{ height: 240 }}>
-                <p>修一下重试就好——输入都还在。</p>
-              </div>
+              {run.modules.length > 0 ? (
+                <>
+                  <div className="cards-header" style={{ marginTop: 14 }}>
+                    <div className="count">
+                      抢救出 <span className="accent">{run.modules.length}</span> 张卡片
+                      <span
+                        style={{
+                          color: "var(--fg-4)",
+                          fontFamily: "var(--font-mono)",
+                          fontSize: 13,
+                          marginLeft: 10,
+                        }}
+                      >
+                        · 中途出错，但已生成的部分仍可用
+                      </span>
+                    </div>
+                  </div>
+                  <div className="cards-list">
+                    {run.modules.map((m, i) => (
+                      <div key={m.id || i} style={{ animation: "fadein .5s both" }}>
+                        <ModuleCard module={m} index={i} onTear={onCardTear} />
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="results-empty" style={{ height: 240 }}>
+                  <p>修一下重试就好——输入都还在。</p>
+                </div>
+              )}
             </>
           )}
 
@@ -742,6 +802,147 @@ export default function AnalyzePage() {
           )}
         </section>
       </div>
+    </div>
+  );
+}
+
+function FirstRunWizard({ onDemo }: { onDemo: () => void }) {
+  return (
+    <div
+      style={{
+        padding: "32px 28px",
+        background: "var(--surface)",
+        border: "1px solid var(--border-strong)",
+        borderRadius: 12,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          alignItems: "baseline",
+          gap: 10,
+          marginBottom: 6,
+        }}
+      >
+        <h3
+          style={{
+            margin: 0,
+            fontSize: 20,
+            fontWeight: 600,
+            letterSpacing: "-0.01em",
+          }}
+        >
+          👋 第一次来？
+        </h3>
+        <span
+          style={{
+            color: "var(--fg-3)",
+            fontSize: 13,
+            fontFamily: "var(--font-mono)",
+          }}
+        >
+          两条最快路径
+        </span>
+      </div>
+      <p
+        style={{
+          color: "var(--fg-3)",
+          fontSize: 13.5,
+          lineHeight: 1.65,
+          margin: "0 0 22px",
+        }}
+      >
+        别急着填 key——先选一条体验完整流程。
+      </p>
+
+      <div
+        style={{
+          display: "grid",
+          gap: 14,
+          gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))",
+        }}
+      >
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🎬</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>试一下 demo</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            用 <code>vercel/ai-chatbot</code> 走一遍完整两阶段拆解 +
+            AI 提示词合成，预设数据，<strong>不需要任何 key</strong>。
+          </p>
+          <button
+            className="btn btn-primary btn-sm"
+            onClick={onDemo}
+            type="button"
+          >
+            开始 demo →
+          </button>
+        </div>
+
+        <div
+          style={{
+            padding: 18,
+            background: "var(--canvas)",
+            border: "1px solid var(--border)",
+            borderRadius: 10,
+            display: "flex",
+            flexDirection: "column",
+            gap: 10,
+          }}
+        >
+          <div style={{ fontSize: 24 }}>🆓</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>用 OpenRouter 免费模型</div>
+          <p
+            style={{
+              margin: 0,
+              fontSize: 12.5,
+              color: "var(--fg-3)",
+              lineHeight: 1.6,
+              flex: 1,
+            }}
+          >
+            一键 OAuth 登录，免费模型零成本可用，**真拆**任何公开 repo。10 美金不到也能升级到 Claude / GPT。
+          </p>
+          <Link href="/settings" className="btn btn-secondary btn-sm">
+            去设置 →
+          </Link>
+        </div>
+      </div>
+
+      <p
+        style={{
+          marginTop: 20,
+          fontSize: 11.5,
+          color: "var(--fg-4)",
+          lineHeight: 1.6,
+        }}
+      >
+        想用你自己的 Claude / OpenAI API key？也可以——
+        <Link
+          href="/settings"
+          style={{ color: "var(--accent-text)", textDecoration: "underline" }}
+        >
+          /settings
+        </Link>{" "}
+        里 7 个 provider 任选。
+      </p>
     </div>
   );
 }
