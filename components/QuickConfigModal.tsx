@@ -301,7 +301,7 @@ export function QuickConfigModal({
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
               >
-                {MODELS[provider as keyof typeof MODELS].map((m) => (
+                {(MODELS[provider as keyof typeof MODELS] ?? []).map((m) => (
                   <option key={m} value={m}>
                     {m}
                   </option>

@@ -13,9 +13,12 @@ function resolveErrorMessage(
   msg: string,
   kind: string | null | undefined
 ): string {
-  if (kind && kind in dict.errorByKind) {
-    const translated = (dict.errorByKind as Record<string, string>)[kind];
-    return translated;
+  // For these kinds the raw provider msg is more diagnostic than a generic
+  // translated sentence ("未知错误。"/"Request rejected.") — show raw.
+  const preferRaw = !kind || kind === "unknown" || kind === "bad_request" || kind === "server";
+  if (preferRaw) return msg || dict.errorByKind.unknown;
+  if (kind in dict.errorByKind) {
+    return (dict.errorByKind as Record<string, string>)[kind];
   }
   return msg;
 }

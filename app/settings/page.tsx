@@ -289,7 +289,7 @@ export default function SettingsPage() {
                 value={activeModel}
                 onChange={(e) => updateModel(e.target.value)}
               >
-                {PRESET_MODELS[activeProvider as keyof typeof PRESET_MODELS].map((m) => (
+                {(PRESET_MODELS[activeProvider as keyof typeof PRESET_MODELS] ?? []).map((m) => (
                   <option key={m} value={m}>{m}</option>
                 ))}
               </select>

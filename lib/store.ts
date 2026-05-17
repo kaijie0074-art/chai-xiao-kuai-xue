@@ -198,7 +198,18 @@ export const useSettings = create<SettingsState>()(
           ? window.localStorage
           : (undefined as unknown as Storage)
       ),
-      version: 4,
+      version: 5,
+      migrate: (persisted) => {
+        const s = (persisted ?? {}) as Partial<SettingsState>;
+        const validProviders: ProviderName[] = [
+          "anthropic", "openai", "openrouter",
+          "deepseek", "moonshot", "zhipu", "custom",
+        ];
+        if (!s.provider || !validProviders.includes(s.provider)) {
+          s.provider = "anthropic";
+        }
+        return s as SettingsState;
+      },
     }
   )
 );
