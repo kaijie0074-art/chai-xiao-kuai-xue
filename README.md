@@ -1,6 +1,11 @@
 # Dissect · 拆小块学
 
-> Don&apos;t learn a project. Learn the small piece of it that&apos;s useful to you.
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![Live demo](https://img.shields.io/badge/live-chai--xiao--kuai--xue.vercel.app-7c5cff.svg)](https://chai-xiao-kuai-xue.vercel.app)
+[![BYOK](https://img.shields.io/badge/auth-BYOK-1f8a5b.svg)](https://chai-xiao-kuai-xue.vercel.app/about#privacy)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+
+> Don't learn a project. Learn the small piece of it that's useful to you.
 > 不要学一个项目，学它对你有用的那一小块。
 
 🇺🇸 **English** · [🇨🇳 中文](./README.zh-CN.md)

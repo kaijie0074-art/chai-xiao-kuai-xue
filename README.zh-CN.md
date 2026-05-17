@@ -1,5 +1,12 @@
 # 拆小块学 · GitHub 项目拆解助手 (MVP v0.1)
 
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![在线](https://img.shields.io/badge/在线-chai--xiao--kuai--xue.vercel.app-7c5cff.svg)](https://chai-xiao-kuai-xue.vercel.app)
+[![BYOK](https://img.shields.io/badge/认证-BYOK-1f8a5b.svg)](https://chai-xiao-kuai-xue.vercel.app/about#privacy)
+[![Next.js 14](https://img.shields.io/badge/Next.js-14-black.svg)](https://nextjs.org/)
+
+[🇺🇸 English](./README.md) · 🇨🇳 **中文**
+
 > 不要学习一个项目，学习它对你有用的那一小块。
 
 一个纯前端的 GitHub 项目拆解工具。粘贴一个 repo 链接 + 你正在做的项目背景，
