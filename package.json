@@ -2,6 +2,13 @@
   "name": "github-dissect-mvp",
   "version": "0.1.0",
   "private": true,
+  "license": "MIT",
+  "author": "Kaijie",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kaijie0074-art/chai-xiao-kuai-xue.git"
+  },
+  "homepage": "https://chai-xiao-kuai-xue.vercel.app",
   "scripts": {
     "dev": "next dev",
     "build": "next build",
