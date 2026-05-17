@@ -51,6 +51,7 @@ export function Nav() {
     { id: "settings", label: t.nav.settings, href: `${prefix}/settings` },
     { id: "about", label: t.nav.about, href: `${prefix}/about` },
   ];
+  const contactHref = `${prefix}/about#contact`;
 
   const isActive = (href: string) => {
     if (pathname === href) return true;
@@ -85,6 +86,17 @@ export function Nav() {
             {l.label}
           </Link>
         ))}
+        {/* 联系 tab：加粗 + 紫色，更显眼。点了跳到 /about 的 #contact 锚点 */}
+        <Link
+          href={contactHref}
+          className="nav-link"
+          style={{
+            fontWeight: 600,
+            color: "var(--accent-text)",
+          }}
+        >
+          {t.nav.contact}
+        </Link>
         <span className="nav-divider" />
         <Link
           href={langSwitchHref}
