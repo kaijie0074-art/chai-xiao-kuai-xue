@@ -14,8 +14,15 @@ function resolveErrorMessage(
   kind: string | null | undefined
 ): string {
   // For these kinds the raw provider msg is more diagnostic than a generic
-  // translated sentence ("未知错误。"/"Request rejected.") — show raw.
-  const preferRaw = !kind || kind === "unknown" || kind === "bad_request" || kind === "server";
+  // translated sentence ("未知错误。"/"网络错误。请检查网络连接。") — show raw.
+  // For network: dict's "check your connection" is useless when the user is
+  // online; raw "Connection error." at least hints it was the fetch layer.
+  const preferRaw =
+    !kind ||
+    kind === "unknown" ||
+    kind === "bad_request" ||
+    kind === "server" ||
+    kind === "network";
   if (preferRaw) return msg || dict.errorByKind.unknown;
   if (kind in dict.errorByKind) {
     return (dict.errorByKind as Record<string, string>)[kind];
