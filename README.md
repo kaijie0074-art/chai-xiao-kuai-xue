@@ -14,6 +14,18 @@
 
 ---
 
+## Screenshots
+
+> Paste a repo, tell it what you're building, get back stealable module cards.
+
+![Input — paste a repo URL, describe your project, pick a mode](./docs/screenshots/01-input.png)
+*Step 1 — paste a GitHub URL, describe what you're building, pick a question mode.*
+
+![Output — 3-8 module cards with what / why / how + source snippet](./docs/screenshots/02-cards.png)
+*Step 2 — get back module cards: each card has what it is, why it helps you, how to migrate it, and the actual code.*
+
+---
+
 ## What it is
 
 A pure-frontend GitHub project dissector. Paste a repo link + tell it what *you&apos;re* building, and a 2-stage LLM pipeline returns 3-8 stealable module cards — each with what it is, why it helps your project, how to migrate it, plus the actual source code snippet.
@@ -143,7 +155,7 @@ vercel
 
 ## License
 
-MIT (see `LICENSE` — TODO add one).
+MIT — see [`LICENSE`](./LICENSE).
 
 ## Contact / contribute
 
