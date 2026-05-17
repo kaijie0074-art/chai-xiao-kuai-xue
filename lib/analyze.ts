@@ -190,12 +190,16 @@ export async function runAnalyze(
     onUpdate({ phase: "stage1", message: "Stage 1 完成", stage1 });
   } catch (e) {
     const err = classifyLLMError(e);
+    // 只在「真正是 JSON 解析失败」时才说成「无法解析为 JSON」；
+    // 否则原样透传，避免把 Connection error 包装成误导性的 JSON 错。
+    const isParseFailure = (e as Error)?.message?.includes(
+      "无法从 LLM 输出中解析出有效 JSON"
+    );
     onUpdate({
       phase: "error",
-      error:
-        err.kind === "unknown"
-          ? `Stage 1 输出无法解析为 JSON：${err.message}`
-          : err.message,
+      error: isParseFailure
+        ? `Stage 1 输出无法解析为 JSON：${err.message}`
+        : err.message,
       errorKind: err.kind,
     });
     return;
@@ -292,12 +296,10 @@ export async function runAnalyze(
         stage2: { modules: rescued },
       });
     }
+    const suffix = rescued.length > 0 ? `（已抢救出 ${rescued.length} 张卡片）` : "";
     onUpdate({
       phase: "error",
-      error:
-        err.kind === "unknown"
-          ? `Stage 2 失败：${err.message}${rescued.length > 0 ? `（已抢救出 ${rescued.length} 张卡片）` : ""}`
-          : err.message,
+      error: `Stage 2 失败：${err.message}${suffix}`,
       errorKind: err.kind,
     });
     return;

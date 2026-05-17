@@ -152,7 +152,7 @@ export function classifyLLMError(e: unknown): LLMError {
       status
     );
   }
-  if (/fetch|network|ECONN|ENOTFOUND|failed to fetch|load failed/i.test(msg)) {
+  if (/fetch|network|ECONN|ENOTFOUND|failed to fetch|load failed|connection|socket|timeout|aborted/i.test(msg)) {
     return new LLMError("network", `网络错误：${msg}`);
   }
   // Not classifiable: surface the raw msg so the user / DevTools sees something
