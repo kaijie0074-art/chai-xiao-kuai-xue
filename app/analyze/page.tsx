@@ -1003,7 +1003,7 @@ function FirstRunWizard({
           }}
         >
           <div style={{ fontSize: 24 }}>🆓</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter 免费模型</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter 免费试用</div>
           <p
             style={{
               margin: 0,
@@ -1013,7 +1013,8 @@ function FirstRunWizard({
               flex: 1,
             }}
           >
-            一键 OAuth 登录，免费模型零成本，**真拆**任何公开 repo。
+            一键 OAuth 登录，免费模型零充值——
+            <strong>约 200 次/天</strong>，先拆 1-2 个 repo 体验产品够用。
           </p>
           <button
             className="btn btn-secondary btn-sm"
@@ -1036,7 +1037,7 @@ function FirstRunWizard({
           }}
         >
           <div style={{ fontSize: 24 }}>🔑</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>用你自己的 Key</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>用你自己的 Key · 推荐日常用</div>
           <p
             style={{
               margin: 0,
@@ -1046,7 +1047,8 @@ function FirstRunWizard({
               flex: 1,
             }}
           >
-            Claude / GPT / DeepSeek / Kimi / 智谱 都行 ·{" "}
+            <strong>DeepSeek / Kimi / 智谱</strong>国内可直连（无需梯子，
+            5 块够拆 50+ 次），或 Claude / GPT 直连。
             <strong>不离开此页</strong>，弹窗里填好就用。
           </p>
           <button

@@ -252,22 +252,35 @@ export default function SettingsPage() {
           <div className="field">
             <label className="label">Model</label>
             {activeProvider === "openrouter" ? (
-              <select
-                className="select"
-                value={activeModel}
-                onChange={(e) => updateModel(e.target.value)}
-              >
-                <optgroup label="Free (rate-limited · $0)">
-                  {OPENROUTER_FREE_MODELS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Paid (requires OpenRouter credit)">
-                  {OPENROUTER_PAID_MODELS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </optgroup>
-              </select>
+              <>
+                <select
+                  className="select"
+                  value={activeModel}
+                  onChange={(e) => updateModel(e.target.value)}
+                >
+                  <optgroup label="Free (~200 req/day · $0)">
+                    {OPENROUTER_FREE_MODELS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="Paid (requires OpenRouter credit)">
+                    {OPENROUTER_PAID_MODELS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
+                </select>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 11.5,
+                    color: "var(--fg-4)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  Free models throttle to ~200 req/day. For daily use, try{" "}
+                  <strong>DeepSeek</strong> ($5 ≈ 50 dissects) or add OpenRouter credit.
+                </div>
+              </>
             ) : activeProvider === "custom" ? (
               <>
                 <input

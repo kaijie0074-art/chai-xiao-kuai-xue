@@ -238,22 +238,35 @@ export default function SettingsPage() {
           <div className="field">
             <label className="label">Model</label>
             {activeProvider === "openrouter" ? (
-              <select
-                className="select"
-                value={activeModel}
-                onChange={(e) => updateModel(e.target.value)}
-              >
-                <optgroup label="免费（速率受限 · 零成本）">
-                  {OPENROUTER_FREE_MODELS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="付费（需在 OpenRouter 充值）">
-                  {OPENROUTER_PAID_MODELS.map((m) => (
-                    <option key={m} value={m}>{m}</option>
-                  ))}
-                </optgroup>
-              </select>
+              <>
+                <select
+                  className="select"
+                  value={activeModel}
+                  onChange={(e) => updateModel(e.target.value)}
+                >
+                  <optgroup label="免费（约 200 次/天 · 零成本）">
+                    {OPENROUTER_FREE_MODELS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
+                  <optgroup label="付费（需在 OpenRouter 充值）">
+                    {OPENROUTER_PAID_MODELS.map((m) => (
+                      <option key={m} value={m}>{m}</option>
+                    ))}
+                  </optgroup>
+                </select>
+                <div
+                  style={{
+                    marginTop: 6,
+                    fontSize: 11.5,
+                    color: "var(--fg-4)",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  免费 model 限速约 200 次/天。要长期日常用，推荐切到{" "}
+                  <strong>DeepSeek</strong>（国内可直连，~5 元够拆 50 次）。
+                </div>
+              </>
             ) : activeProvider === "custom" ? (
               <>
                 <input

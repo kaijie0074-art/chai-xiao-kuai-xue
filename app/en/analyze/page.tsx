@@ -965,7 +965,7 @@ function FirstRunWizard({
           }}
         >
           <div style={{ fontSize: 24 }}>🆓</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter free models</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>OpenRouter free trial</div>
           <p
             style={{
               margin: 0,
@@ -975,7 +975,8 @@ function FirstRunWizard({
               flex: 1,
             }}
           >
-            One-tap OAuth · free-tier models cost nothing · dissect any public repo.
+            One-tap OAuth · zero spend on free models —{" "}
+            <strong>~200 req/day</strong>, enough to try 1-2 repos and feel the product.
           </p>
           <button
             className="btn btn-secondary btn-sm"
@@ -998,7 +999,7 @@ function FirstRunWizard({
           }}
         >
           <div style={{ fontSize: 24 }}>🔑</div>
-          <div style={{ fontWeight: 600, fontSize: 15 }}>Use your own key</div>
+          <div style={{ fontWeight: 600, fontSize: 15 }}>Use your own key · daily use</div>
           <p
             style={{
               margin: 0,
@@ -1008,7 +1009,9 @@ function FirstRunWizard({
               flex: 1,
             }}
           >
-            Claude / GPT / DeepSeek / Kimi / Zhipu — paste a key in the modal, <strong>without leaving this page</strong>.
+            Claude / GPT — or <strong>DeepSeek / Kimi / Zhipu</strong> if
+            you&apos;re in mainland China (no VPN; $5 ≈ 50 dissects).
+            Paste a key in the modal, <strong>without leaving this page</strong>.
           </p>
           <button
             className="btn btn-secondary btn-sm"
