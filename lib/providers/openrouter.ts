@@ -30,7 +30,10 @@ export class OpenRouterProvider implements LLMProvider {
       dangerouslyAllowBrowser: true,
       defaultHeaders: {
         "HTTP-Referer": referer,
-        "X-Title": "拆小块学",
+        // X-Title must be ASCII: Chrome's fetch() throws synchronously when a
+        // header value contains non-Latin-1 chars, killing the request before
+        // it leaves the browser. The Chinese title "拆小块学" used to be here.
+        "X-Title": "Dissect",
       },
     });
     this.model = config.model || DEFAULT_OPENROUTER_MODEL;
